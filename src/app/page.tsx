@@ -1,102 +1,184 @@
-import Image from "next/image";
+import React, { Suspense } from "react";
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import Navbar from "@/components/Navbar";
+import { Resend } from 'resend';
 
-export default function Home() {
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Extend the session type to include 'role'
+type UserWithRole = {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+};
+
+type SessionWithRole = {
+  user?: UserWithRole;
+};
+
+// Client component for the sign out button
+function SignOutButton() {
+  "use client";
+  const { signOut } = require("next-auth/react");
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <button
+      onClick={() => signOut({ callbackUrl: "/" })}
+      className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold transition"
+    >
+      Sign Out
+    </button>
+  );
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+// --- ProfilePreview component ---
+async function fetchProfile(email: string) {
+  if (!email) return null;
+  try {
+    // Always use absolute URL for server-side fetch in Next.js
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL || "http://localhost:3000";
+    const url = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+    const res = await fetch(`${url}/api/profile?email=${encodeURIComponent(email)}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  await resend.emails.send({
+    from: 'Your App <noreply@yourdomain.com>',
+    to: email,
+    subject: 'Reset your password',
+    html: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+  });
+}
+
+function ProfilePreviewSkeleton() {
+  return (
+    <div className="flex flex-col items-center gap-3 animate-pulse">
+      <div className="w-24 h-24 rounded-full bg-gray-800 mb-2" />
+      <div className="h-6 w-32 bg-gray-800 rounded mb-1" />
+      <div className="h-4 w-48 bg-gray-800 rounded" />
+    </div>
+  );
+}
+
+async function ProfilePreview({ email }: { email: string }) {
+  const profile = await fetchProfile(email);
+  if (!profile) return <ProfilePreviewSkeleton />;
+  return (
+    <div className="flex flex-col items-center gap-3 bg-gray-800 rounded-xl p-6 shadow-lg">
+      <img
+        src={profile.photo || "/default-avatar.png"}
+        alt="Profile"
+        className="w-24 h-24 rounded-full object-cover border-2 border-indigo-700 shadow mb-2"
+      />
+      <div className="font-bold text-xl text-indigo-200">{profile.name || profile.email}</div>
+      {profile.bio && <div className="text-gray-400 text-base mb-1 text-center">{profile.bio}</div>}
+      <div className="flex gap-3 mt-2">
+        {profile.linkedin && (
+          <a href={`https://linkedin.com/in/${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">LinkedIn</a>
+        )}
+        {profile.github && (
+          <a href={`https://github.com/${profile.github}`} target="_blank" rel="noopener noreferrer" className="text-gray-100 hover:underline">GitHub</a>
+        )}
+        {profile.leetcode && (
+          <a href={`https://leetcode.com/${profile.leetcode}`} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">LeetCode</a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default async function Home() {
+  const session = await getServerSession(authOptions) as SessionWithRole | null;
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100">
+      {/* Navbar */}
+      <Navbar />
+
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center flex-1 pt-32 pb-16 bg-gradient-to-br from-gray-900 via-gray-950 to-indigo-950 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-950 dark:to-indigo-950">
+        <h1 className="text-5xl font-bold text-indigo-400 mb-4 text-center">Welcome to H4B</h1>
+        <p className="text-lg text-gray-300 mb-8 text-center max-w-xl">
+          The best place to manage your products and profile. Sign in to get started!
+        </p>
+        {!session?.user && (
+          <Link
+            href="/auth/signin"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded transition text-lg"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Get Started
+          </Link>
+        )}
+        {session?.user && (
+          <Link
+            href="/profile"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded transition text-lg"
           >
-            Read our docs
-          </a>
+            Go to Profile
+          </Link>
+        )}
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="bg-gray-900 py-16 px-4 dark:bg-gray-900">
+        <div className="max-w-3xl mx-auto text-center mb-10">
+          <h2 className="text-3xl font-bold text-indigo-400 mb-4">About Us</h2>
+          <p className="text-gray-300 text-lg">
+            H4B is a modern platform for user and product management. Built with Next.js, MongoDB, and cloud image storage, it provides a seamless experience for both users and admins.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+        {/* Profile Preview or Login Button */}
+        <div className="max-w-xl mx-auto">
+          {session?.user ? (
+            <ProfilePreview email={session.user.email} />
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <div className="text-lg text-gray-300 mb-2">Sign up to create your profile and get started!</div>
+              <Link
+                href="/auth/signup"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded transition text-lg"
+              >
+                Sign Up
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Product Section */}
+      <section id="products" className="bg-gray-800 py-16 px-4 dark:bg-gray-800">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-indigo-400 mb-8 text-center">Our Products</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-gray-900 rounded-lg shadow p-6 flex flex-col items-center">
+              <div className="w-24 h-24 bg-indigo-900 rounded-full mb-4 flex items-center justify-center text-3xl">📦</div>
+              <h3 className="font-bold text-lg mb-2 text-indigo-300">Product One</h3>
+              <p className="text-gray-400 text-center">A great product for your needs.</p>
+            </div>
+            <div className="bg-gray-900 rounded-lg shadow p-6 flex flex-col items-center">
+              <div className="w-24 h-24 bg-indigo-900 rounded-full mb-4 flex items-center justify-center text-3xl">🚀</div>
+              <h3 className="font-bold text-lg mb-2 text-indigo-300">Product Two</h3>
+              <p className="text-gray-400 text-center">Boost your workflow with this tool.</p>
+            </div>
+            <div className="bg-gray-900 rounded-lg shadow p-6 flex flex-col items-center">
+              <div className="w-24 h-24 bg-indigo-900 rounded-full mb-4 flex items-center justify-center text-3xl">🔒</div>
+              <h3 className="font-bold text-lg mb-2 text-indigo-300">Product Three</h3>
+              <p className="text-gray-400 text-center">Secure and reliable for your business.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 py-6 mt-auto text-center text-gray-400 text-sm dark:bg-gray-900">
+        &copy; {new Date().getFullYear()} H4B. All rights reserved.
       </footer>
     </div>
   );

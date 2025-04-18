@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+
+#api
+/h4b-api
+
 # production
 /build
 
