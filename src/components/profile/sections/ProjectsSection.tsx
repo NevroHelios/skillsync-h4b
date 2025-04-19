@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaProjectDiagram, FaGithub, FaStar, FaCodeBranch, FaHistory, FaPlus, FaReply, FaTrash } from "react-icons/fa";
+import { FaProjectDiagram, FaGithub, FaStar, FaCodeBranch, FaHistory, FaReply, FaTrash } from "react-icons/fa";
 import { Project } from "@/components/profile/types";
 import { Session } from "next-auth"; // Import Session type
 import Slider from "react-slick";
@@ -352,91 +352,78 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
           return (
             <div key={i} className="px-2 sm:px-3 py-2">
               <div
-                className="bg-gradient-to-br from-gray-900/80 to-gray-800/70 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-gray-700/40 hover:border-blue-500/60 transition-all duration-200 flex flex-col justify-between h-full min-h-[250px] sm:min-h-[290px] shadow-xl hover:shadow-2xl group"
+                className="relative bg-gradient-to-br from-gray-900/80 to-gray-800/70 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-gray-700/40 hover:border-blue-500/60 transition-all duration-200 flex flex-col justify-between h-full min-h-[250px] sm:min-h-[290px] shadow-xl hover:shadow-2xl group"
                 style={{
                   boxShadow: "0 8px 32px 0 rgba(0,0,0,0.18), 0 1.5px 6px 0 rgba(0,0,0,0.10)"
                 }}
               >
-                <div className="flex justify-between items-start mb-3">
-                  <span className="font-semibold text-gray-100 text-xl">{p.name}</span>
-                  <div className="flex items-center gap-2">
-                    {/* Delete button for owner */}
-                    {session?.user?.email === user?.email && handleProjectDelete && (
-                      <button
-                        onClick={() => setProjectToDelete(p.name)}
-                        className="bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 p-2 rounded transition-all duration-200 group"
-                        title="Delete project"
-                        aria-label="Delete project"
-                        style={{ display: "inline-flex", alignItems: "center" }}
-                      >
-                        <FaTrash size={14} className="group-hover:scale-110 transition-transform" />
-                        <span className="ml-1 text-xs hidden sm:inline">Delete</span>
-                      </button>
-                    )}
+                <div>
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="font-semibold text-gray-100 text-xl">{p.name}</span>
                     {p.link && (
                       <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm font-medium flex-shrink-0">
                         View Project
                       </a>
                     )}
                   </div>
-                </div>
 
-                {p.description && (
-                  <p className="text-gray-400 text-base mb-5">{p.description}</p>
-                )}
-
-                <div className="flex flex-wrap gap-x-5 gap-y-2.5 text-sm mb-5">
-                  {p.skills && p.skills.length > 0 && (
-                    <div className="w-full">
-                      <div className="flex items-center gap-2 text-gray-300 mb-2">
-                        <span className="font-medium">Skills:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {p.skills.map((skill, skillIdx) => (
-                          <span 
-                            key={skillIdx} 
-                            className="px-3 py-1.5 bg-gradient-to-br from-indigo-900/40 to-blue-900/30 text-blue-200 rounded-md border border-blue-500/20 shadow-sm hover:shadow-md hover:border-blue-500/30 transition-all duration-200 text-sm font-medium"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                  {p.description && (
+                    <p className="text-gray-400 text-base mb-5">{p.description}</p>
                   )}
-                  {p.experience && (
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <span className="font-medium">Experience:</span>
-                      <span className="bg-gray-700/80 px-2.5 py-1 rounded-sm text-gray-200">{p.experience}</span>
-                    </div>
-                  )}
-                </div>
 
-                {repoData && (
-                  <div className="bg-gray-950 rounded-md p-4 border border-gray-700/50 my-5">
-                    <div className="flex justify-between items-center mb-2">
-                      <a href={repoData.html_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline font-medium block truncate flex-1 mr-2 text-base" title={repoData.name}>
-                        <FaGithub className="inline mr-1.5" /> {repoData.name}
-                      </a>
-                      {repoData.fork && <span className="text-xs text-gray-300 bg-indigo-900/30 px-2 py-0.5 rounded-full border border-indigo-600/30">Fork</span>}
-                    </div>
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                      {repoData.description || <span className="italic">No description.</span>}
-                    </p>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      <span className="flex items-center bg-yellow-900/20 text-yellow-300 px-3 py-1.5 rounded-full">
-                        <FaStar className="mr-1.5" />{repoData.stargazers_count}
-                      </span>
-                      <span className="flex items-center bg-blue-900/20 text-blue-300 px-3 py-1.5 rounded-full">
-                        <FaCodeBranch className="mr-1.5" />{repoData.forks_count}
-                      </span>
-                      <span className="flex items-center bg-gray-800/50 text-gray-300 px-3 py-1.5 rounded-full">
-                        <FaHistory className="mr-1.5" />Updated: {formatDate(repoData.updated_at)}
-                      </span>
-                    </div>
+                  <div className="flex flex-wrap gap-x-5 gap-y-2.5 text-sm mb-5">
+                    {p.skills && p.skills.length > 0 && (
+                      <div className="w-full">
+                        <div className="flex items-center gap-2 text-gray-300 mb-2">
+                          <span className="font-medium">Skills:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {p.skills.map((skill, skillIdx) => (
+                            <span 
+                              key={skillIdx} 
+                              className="px-3 py-1.5 bg-gradient-to-br from-indigo-900/40 to-blue-900/30 text-blue-200 rounded-md border border-blue-500/20 shadow-sm hover:shadow-md hover:border-blue-500/30 transition-all duration-200 text-sm font-medium"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {p.experience && (
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <span className="font-medium">Experience:</span>
+                        <span className="bg-gray-700/80 px-2.5 py-1 rounded-sm text-gray-200">{p.experience}</span>
+                      </div>
+                    )}
                   </div>
-                )}
 
-                <div className="flex flex-col gap-5 mt-6 pt-5 border-t border-gray-700/40">
+                  {repoData && (
+                    <div className="bg-gray-950 rounded-md p-4 border border-gray-700/50 my-5">
+                      <div className="flex justify-between items-center mb-2">
+                        <a href={repoData.html_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline font-medium block truncate flex-1 mr-2 text-base" title={repoData.name}>
+                          <FaGithub className="inline mr-1.5" /> {repoData.name}
+                        </a>
+                        {repoData.fork && <span className="text-xs text-gray-300 bg-indigo-900/30 px-2 py-0.5 rounded-full border border-indigo-600/30">Fork</span>}
+                      </div>
+                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                        {repoData.description || <span className="italic">No description.</span>}
+                      </p>
+                      <div className="flex flex-wrap gap-4 text-sm">
+                        <span className="flex items-center bg-yellow-900/20 text-yellow-300 px-3 py-1.5 rounded-full">
+                          <FaStar className="mr-1.5" />{repoData.stargazers_count}
+                        </span>
+                        <span className="flex items-center bg-blue-900/20 text-blue-300 px-3 py-1.5 rounded-full">
+                          <FaCodeBranch className="mr-1.5" />{repoData.forks_count}
+                        </span>
+                        <span className="flex items-center bg-gray-800/50 text-gray-300 px-3 py-1.5 rounded-full">
+                          <FaHistory className="mr-1.5" />Updated: {formatDate(repoData.updated_at)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-5 mt-auto pt-5 border-t border-gray-700/40">
                   <div className="flex items-center justify-center sm:justify-start gap-3">
                     {session?.user?.email === user?.email ? (
                       <div className="flex flex-col items-center sm:items-start">
@@ -582,6 +569,20 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     </details>
                   </div>
                 </div>
+
+                {session?.user?.email === user?.email && handleProjectDelete && (
+                  <button
+                    onClick={() => setProjectToDelete(p.name)}
+                    className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white p-2.5 rounded-full shadow-lg hover:shadow-red-500/30 transition-all duration-300 transform hover:scale-110 group"
+                    title="Delete project"
+                    aria-label="Delete project"
+                  >
+                    <FaTrash size={16} />
+                    <span className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-md">
+                      Delete
+                    </span>
+                  </button>
+                )}
               </div>
               {/* Divider for mobile */}
               <div className="block md:hidden h-4" />

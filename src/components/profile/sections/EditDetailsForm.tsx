@@ -6,6 +6,7 @@ import CertificatesList from "@/components/profile/CertificatesList";
 import ExperienceList from "@/components/profile/ExperienceList";
 import CPProfilesList from "@/components/profile/CPProfilesList";
 import { Certificate, Experience, CPProfile, Skill } from "@/components/profile/types";
+import Groq from "groq-sdk"; // Import Groq type
 
 interface EditDetailsFormProps {
   photo: string;
@@ -36,6 +37,7 @@ interface EditDetailsFormProps {
   handleRefreshLeetcode: () => Promise<void>;
   handleRefreshGfg: () => Promise<void>;
   setShowAddProject: (show: boolean) => void;
+  groqClient: Groq | null; // Add groqClient prop
   loading: boolean;
   refreshingGithub: boolean;
   refreshingLeetcode: boolean;
@@ -47,7 +49,8 @@ const EditDetailsForm: React.FC<EditDetailsFormProps> = ({
   leetcode, setLeetcode, gfg, setGfg, skills, setSkills, certificates, setCertificates,
   setCertPreview, experiences, setExperiences, cpProfiles, setCpProfiles, handleSave,
   handleRefreshGithub, handleRefreshLeetcode, handleRefreshGfg, setShowAddProject,
-  loading, refreshingGithub, refreshingLeetcode, refreshingGfg
+  loading, refreshingGithub, refreshingLeetcode, refreshingGfg,
+  groqClient // Destructure groqClient
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -173,7 +176,12 @@ const EditDetailsForm: React.FC<EditDetailsFormProps> = ({
           </div>
 
           <SkillsEditor skills={skills} setSkills={setSkills} />
-          <CertificatesList certificates={certificates} setCertificates={setCertificates} setCertPreview={setCertPreview} />
+          <CertificatesList
+            certificates={certificates}
+            setCertificates={setCertificates}
+            setCertPreview={setCertPreview}
+            groqClient={groqClient}
+          />
           <ExperienceList experiences={experiences} setExperiences={setExperiences} availableSkills={skills} />
           <CPProfilesList cpProfiles={cpProfiles} setCpProfiles={setCpProfiles} />
 

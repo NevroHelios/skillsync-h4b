@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React from "react"; // Removed unused Suspense
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -8,8 +8,8 @@ import Hero from "@/components/Hero-section/Hero";
 import Security from "@/components/Security/Security";
 import Collaboration from "@/components/Collaboration/Collaboration";
 import Productivity from "@/components/Productivity/Productivity";
-import StickyNav from "@/components/Navbar/StickyNav";
-import Globe from "@/components/Footer/Globe";
+// Removed unused StickyNav and Globe imports
+import Image from 'next/image'; // Import next/image
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -23,26 +23,14 @@ type UserWithRole = {
 
 type SessionWithRole = {
   user?: UserWithRole;
-};
-
-// Client component for the sign out button
-function SignOutButton() {
-  "use client";
-  const { signOut } = require("next-auth/react");
-  return (
-    <button
-      onClick={() => signOut({ callbackUrl: "/" })}
-      className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold transition"
-    >
-      Sign Out
-    </button>
-  );
-}
+} | null;
 
 // --- ProfilePreview component ---
 async function fetchProfile(email: string) {
   if (!email) return null;
   try {
+    // This function calls the /api/profile endpoint,
+    // which retrieves user data from MongoDB.
     // Always use absolute URL for server-side fetch in Next.js
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL || "http://localhost:3000";
     const url = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
@@ -52,15 +40,6 @@ async function fetchProfile(email: string) {
   } catch {
     return null;
   }
-}
-
-async function sendPasswordResetEmail(email: string, resetUrl: string) {
-  await resend.emails.send({
-    from: 'Your App <noreply@yourdomain.com>',
-    to: email,
-    subject: 'Reset your password',
-    html: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
-  });
 }
 
 function ProfilePreviewSkeleton() {
@@ -78,10 +57,14 @@ async function ProfilePreview({ email }: { email: string }) {
   if (!profile) return <ProfilePreviewSkeleton />;
   return (
     <div className="flex flex-col items-center gap-3 bg-gray-800 rounded-xl p-6 shadow-lg">
-      <img
-        src={profile.photo || "/default-avatar.png"}
+      {/* Use next/image Image component */}
+      <Image
+        src={profile.photo || "/default-avatar.png"} // Ensure default-avatar.png is in public folder
         alt="Profile"
-        className="w-24 h-24 rounded-full object-cover border-2 border-indigo-700 shadow mb-2"
+        width={96} // Provide width (w-24 -> 96px)
+        height={96} // Provide height (h-24 -> 96px)
+        className="rounded-full object-cover border-2 border-indigo-700 shadow mb-2"
+        priority // Add priority if it's LCP
       />
       <div className="font-bold text-xl text-indigo-200">{profile.name || profile.email}</div>
       {profile.bio && <div className="text-gray-400 text-base mb-1 text-center">{profile.bio}</div>}
@@ -109,48 +92,18 @@ export default async function Home() {
       <Navbar />
 
       {/* Main Content */}
-       {/* <div className='relative'>
-            <img className='absolute top-0 transition ease-in duration-200 max-xl:right-[-1050px] xl:right-[-970px] -z-30 image' width='4377' src="https://github.githubassets.com/images/modules/site/home-campaign/hero-bg.webp" alt="" />
-          </div> */}
-          <div className='hero-section px-3 '>
-            <Hero/>
-          </div>
-          {/* <StickyNav/> */}
-          <div id='productivity' className='home-campaign-productivity px-4 pt-8 overflow-hidden'>
-            <Productivity/>
-          </div>
-          <div id='collaboration' className='home-campaign-productivity px-4 pt-8  overflow-hidden'>
-            <Collaboration/>
-          </div>
-          <div id='security' className='home-campaign-productivity px-4 pt-8 pb-16 overflow-hidden'>
-            <Security/>
-          </div>
-         {/* <Globe/> */}
-
-
-      {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center flex-1 pt-32 pb-16 bg-gradient-to-br from-gray-900 via-gray-950 to-indigo-950 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-950 dark:to-indigo-950">
-        <h1 className="text-5xl font-bold text-indigo-400 mb-4 text-center">Welcome to H4B</h1>
-        <p className="text-lg text-gray-300 mb-8 text-center max-w-xl">
-          The best place to manage your products and profile. Sign in to get started!
-        </p>
-        {!session?.user && (
-          <Link
-            href="/auth/signin"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded transition text-lg"
-          >
-            Get Started
-          </Link>
-        )}
-        {session?.user && (
-          <Link
-            href="/profile"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded transition text-lg"
-          >
-            Go to Profile
-          </Link>
-        )}
-      </section>
+      <div className='hero-section px-3 '>
+        <Hero session={session} />
+      </div>
+      <div id='productivity' className='home-campaign-productivity px-4 pt-8 overflow-hidden'>
+        <Productivity />
+      </div>
+      <div id='collaboration' className='home-campaign-productivity px-4 pt-8  overflow-hidden'>
+        <Collaboration />
+      </div>
+      <div id='security' className='home-campaign-productivity px-4 pt-8 pb-16 overflow-hidden'>
+        <Security />
+      </div>
 
       {/* About Section */}
       <section id="about" className="bg-gray-900 py-16 px-4 dark:bg-gray-900">
@@ -163,7 +116,7 @@ export default async function Home() {
         {/* Profile Preview or Login Button */}
         <div className="max-w-xl mx-auto">
           {session?.user ? (
-            <ProfilePreview email={session.user.email} />
+            <ProfilePreview email={session.user.email!} />
           ) : (
             <div className="flex flex-col items-center gap-4">
               <div className="text-lg text-gray-300 mb-2">Sign up to create your profile and get started!</div>

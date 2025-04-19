@@ -634,6 +634,8 @@ export default function Profile() {
           />
           <div className="w-full flex flex-col items-center lg:items-start gap-10">
             <DeveloperWalletConnect />
+            <div className="flex flex-row items-center gap-4 w-full">
+            <div className="w-1/3 flex flex-col items-center justify-center" >
             <ProfileHeader
               photo={photo}
               name={name}
@@ -649,7 +651,8 @@ export default function Profile() {
                 <FaSpinner className="animate-spin" />
                 <span>Generating domain scores in the background...</span>
               </div>
-            )}
+            )}</div>
+            <div className="w-2/3 flex flex-col gap-4 lg:gap-6">
             <StatsSection
               leetCodeStats={leetCodeStats}
               gfgStats={gfgStats}
@@ -667,7 +670,7 @@ export default function Profile() {
               handleRefreshGithub={() => {}}
               loading={loading}
               refreshingGithub={refreshingGithub}
-            />
+            /></div></div>
             <ProjectsSection
               projects={projects}
               githubRepos={githubRepos}

@@ -1,6 +1,8 @@
 'use client'
 import React, {useState} from 'react'
-import CodeEditor from './CodeEditor'
+import { useSession } from "next-auth/react";
+import ProfilePreview from "@/components/ProfilePreview"; // Import the new component
+// import CodeEditor from './CodeEditor'
 import CodeSpace from './CodeSpace'
 import HoverCard from './HoverCard'
 import CopilotFeature from './CopilotFeature'
@@ -9,6 +11,7 @@ import {motion} from "framer-motion"
 type Props = {}
 
 const Productivity = (props: Props) => {
+    const { data: session } = useSession(); 
     const [hovered, setHovered] = useState<boolean>(false)
     const [hovered1, setHovered1] = useState<boolean>(false)
 
@@ -28,12 +31,25 @@ const Productivity = (props: Props) => {
             <div className='md:w-10/12 mb-24'>
                 <motion.div initial={{opacity:0}} whileInView={{opacity:1}} transition={{delay:0.4, duration:0.3}} viewport={{once:false}} className="text-[20px] md:text-2xl mb-7 font-medium text-white js-build-in-item build-in-slideX-left build-in-animate" style={{transitionDelay: '200ms'}}>Productivity</motion.div>  
                 <motion.h3 initial={{opacity:0}} whileInView={{opacity:1}} transition={{delay:0.5,duration:0.3}} viewport={{once:false}} className="text-[28px] md:text-[40px] max-md:leading-8 max-lg:leading-10 lg:text-5xl mb-7 font-medium text-white js-build-in-item build-in-slideX-left build-in-animate" style={{transitionDelay: '300ms'}}>
-                    <span className="text-[#7ee787]">Accelerate high-quality software development.</span>
-                    Our AI-powered platform drives innovation with tools that boost developer velocity.
+                    <span className="text-[#7ee787]">A more professional alternative to LinkedIn  </span>
+                    with verifiable job posts and internships via NFTs, preventing fraud, and featuring a public leaderboard to boost competitiveness.
                 </motion.h3>
             </div>
         </div>
-        <CodeEditor/>
+        {/* <CodeEditor/> */}
+
+
+{/* {user profile} */}
+<div className="my-12 flex justify-center">
+            {session?.user?.email ? (
+                <ProfilePreview email={session.user.email} />
+            ) : (
+                <div className="text-center text-gray-500 bg-gray-800 rounded-xl p-6 shadow-lg w-full max-w-md">
+                    Sign in to see your profile preview.
+                </div>
+            )}
+        </div>
+
         <CodeSpace/>
         <div className='relative z-[1] '>
             <CopilotFeature/>

@@ -1,8 +1,9 @@
 import React from 'react';
-import { FaLinkedin, FaGithub } from "react-icons/fa";
+import { FaLinkedin, FaGithub, FaMapMarkerAlt } from "react-icons/fa"; // Added FaMapMarkerAlt
 import { SiLeetcode, SiGeeksforgeeks } from "react-icons/si";
 import WalletConnectButton from "@/components/WalletConnectButton";
-import DomainScoresHeader from '@/components/profile/DomainScoresHeader'; // Import the new component
+import DomainScoresHeader from '@/components/profile/DomainScoresHeader';
+import SkillsSection from '@/components/profile/sections/SkillsSection'; // Added SkillsSection import
 
 // Define the Domain type (can be imported from a shared types file if available)
 type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud" | "DSA" | string; // Add DSA
@@ -14,9 +15,17 @@ interface DomainScoreData {
   lastUpdated?: Date | string;
 }
 
+// Define the structure of a skill object
+interface Skill {
+  name: string;
+  level: string; // e.g., 'Beginner', 'Intermediate', 'Advanced', 'Expert'
+}
+
 interface ProfileHeaderProps {
   photo: string;
   name: string;
+  title?: string; // Added optional title/role
+  location?: string; // Added optional location
   bio: string;
   linkedin: string;
   github: string;
@@ -24,91 +33,137 @@ interface ProfileHeaderProps {
   gfg: string;
   // Update scores prop type to match the structure in UserProfile
   scores?: { [key in Domain]?: DomainScoreData | number | null };
+  skills?: Skill[]; // Added optional skills
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   photo,
   name,
+  title, // Added title
+  location, // Added location
   bio,
   linkedin,
   github,
   leetcode,
   gfg,
   scores = {}, // Provide default empty object for scores
+  skills = [], // Provide default empty array for skills
 }) => {
   return (
     <div
-      className="w-full bg-gradient-to-br from-gray-900/80 to-gray-800/70 backdrop-blur-md rounded-2xl p-5 sm:p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-10 border border-gray-700/40 shadow-2xl"
+      // Updated classes and style for the new UI
+      className="-mt-4 w-full max-w-sm ml-0 mr-auto bg-gradient-to-br from-gray-900/70 via-gray-900/80 to-black/70 backdrop-blur-lg rounded-3xl p-1 sm:p-2 flex flex-col items-start gap-1 sm:gap-2 border border-gray-700/50 shadow-xl"
       style={{
-        boxShadow: "0 8px 32px 0 rgba(0,0,0,0.18), 0 1.5px 6px 0 rgba(0,0,0,0.10)"
+        boxShadow: "0 10px 40px 0 rgba(0,0,0,0.2), 0 2px 8px 0 rgba(0,0,0,0.15)"
       }}
     >
-      <img
-        src={photo || "/default-avatar.png"}
-        alt="Profile Preview"
-        className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-blue-700/60 shadow-lg flex-shrink-0 bg-gray-800"
-      />
-      <div className="text-center md:text-left flex-grow w-full">
-        <div className="font-bold text-2xl sm:text-3xl md:text-5xl text-gray-100 tracking-tight mb-2 break-words">{name || "Your Name"}</div>
-        <div className="text-gray-400 text-base sm:text-lg mt-2 mb-6 max-w-2xl mx-auto md:mx-0 break-words">{bio || <span className="italic">No bio provided.</span>}</div>
-        <div className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-3 mt-4">
-          {linkedin && (
-            <a
-              href={`https://linkedin.com/in/${linkedin}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-900/30 text-blue-300 hover:bg-blue-800/50 hover:text-blue-200 font-medium shadow-sm border border-blue-500/20 transition-all duration-200"
-              title="LinkedIn"
-            >
-              <FaLinkedin size={20} /> <span className="hidden sm:inline">{linkedin}</span>
-            </a>
+      {/* Profile Picture and Basic Info */}
+      <div className="flex items-start gap-4 w-full p-4"> {/* Adjusted padding and gap */}
+        <img
+          src={photo || "/default-avatar.png"}
+          alt={`${name}'s profile picture`}
+          // Updated image size and styling
+          className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-blue-600/50 shadow-md bg-gray-800 flex-shrink-0"
+        />
+        <div className="flex flex-col items-start flex-grow min-w-0"> {/* Added flex-grow and min-w-0 */}
+          <h1 className="font-bold text-lg sm:text-xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-400 truncate w-full"> {/* Added truncate */}
+            {name || "Your Name"}
+          </h1>
+          {/* Added title */}
+          {title && (
+            <p className="text-blue-300/80 text-sm sm:text-base font-medium leading-tight mt-0.5 truncate w-full">{title}</p>
           )}
-          {github && (
-            <a
-              href={`https://github.com/${github}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800/40 text-gray-200 hover:bg-gray-700/60 hover:text-white font-medium shadow-sm border border-gray-500/20 transition-all duration-200"
-              title="GitHub"
-            >
-              <FaGithub size={20} /> <span className="hidden sm:inline">{github}</span>
-            </a>
+          {/* Added location */}
+          {location && (
+            <div className="flex items-center gap-1 text-gray-400 text-xs sm:text-sm mt-1">
+              <FaMapMarkerAlt className="text-gray-500" />
+              <span>{location}</span>
+            </div>
           )}
-          {leetcode && (
-            <a
-              href={`https://leetcode.com/${leetcode}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-900/30 text-orange-300 hover:bg-orange-800/50 hover:text-orange-200 font-medium shadow-sm border border-orange-500/20 transition-all duration-200"
-              title="LeetCode"
-            >
-              <SiLeetcode size={20} /> <span className="hidden sm:inline">{leetcode}</span>
-            </a>
-          )}
-          {gfg && (
-            <a
-              href={`https://auth.geeksforgeeks.org/user/${gfg}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-900/30 text-green-300 hover:bg-green-800/50 hover:text-green-200 font-medium shadow-sm border border-green-500/20 transition-all duration-200"
-              title="GeeksforGeeks"
-            >
-              <SiGeeksforgeeks size={20} /> <span className="hidden sm:inline">{gfg}</span>
-            </a>
-          )}
+          {/* Moved Bio here */}
+          <p className="text-gray-400 text-sm mt-2 leading-snug break-words">
+            {bio || <span className="italic text-gray-500">No bio provided.</span>}
+          </p>
         </div>
+      </div>
 
-        {/* Render DomainScoresHeader if scores are provided */}
-        {/* Ensure scores object is passed correctly */}
-        {scores && Object.keys(scores).length > 0 && (
-          <div className="mt-6">
-            <DomainScoresHeader scores={scores} />
-          </div>
+      {/* Skills Section */}
+      {skills && skills.length > 0 && (
+        <div className="w-full px-4 my-3 md:my-4"> {/* Adjusted margin */}
+          {/* Pass only the skill names to SkillsSection */}
+          <SkillsSection skills={skills.map(skill => skill.name)} />
+        </div>
+      )}
+
+      {/* Social & Coding Platform Links */}
+      {/* Updated styling and structure for links */}
+      <div className="flex flex-wrap justify-start items-center gap-x-3 gap-y-2 px-4 mt-2 mb-4 w-full">
+        {linkedin && (
+          <a
+            href={`https://linkedin.com/in/${linkedin}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600/20 text-blue-300 hover:bg-blue-600/40 hover:text-blue-200 font-medium text-xs shadow-sm border border-blue-500/30 transition-all duration-200 group"
+            title="LinkedIn Profile"
+          >
+            <FaLinkedin size={16} className="group-hover:scale-110 transition-transform"/>
+            <span className="hidden sm:inline">{linkedin}</span>
+            <span className="sm:hidden">LinkedIn</span>
+          </a>
         )}
+        {github && (
+          <a
+            href={`https://github.com/${github}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-700/30 text-gray-300 hover:bg-gray-600/50 hover:text-white font-medium text-xs shadow-sm border border-gray-500/30 transition-all duration-200 group"
+            title="GitHub Profile"
+          >
+            <FaGithub size={16} className="group-hover:scale-110 transition-transform"/>
+            <span className="hidden sm:inline">{github}</span>
+            <span className="sm:hidden">GitHub</span>
+          </a>
+        )}
+        {leetcode && (
+          <a
+            href={`https://leetcode.com/${leetcode}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-600/20 text-orange-300 hover:bg-orange-600/40 hover:text-orange-200 font-medium text-xs shadow-sm border border-orange-500/30 transition-all duration-200 group"
+            title="LeetCode Profile"
+          >
+            <SiLeetcode size={16} className="group-hover:scale-110 transition-transform"/>
+            <span className="hidden sm:inline">{leetcode}</span>
+            <span className="sm:hidden">LeetCode</span>
+          </a>
+        )}
+        {gfg && (
+          <a
+            href={`https://auth.geeksforgeeks.org/user/${gfg}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-600/20 text-green-300 hover:bg-green-600/40 hover:text-green-200 font-medium text-xs shadow-sm border border-green-500/30 transition-all duration-200 group"
+            title="GeeksforGeeks Profile"
+          >
+            <SiGeeksforgeeks size={16} className="group-hover:scale-110 transition-transform"/>
+            <span className="hidden sm:inline">{gfg}</span>
+            <span className="sm:hidden">GFG</span>
+          </a>
+        )}
+      </div>
 
-        <div className="mt-8 flex justify-center md:justify-start">
-          <WalletConnectButton />
+      {/* Domain Scores Section */}
+      {scores && Object.keys(scores).length > 0 && (
+        // Added border top and adjusted padding/margin
+        <div className="w-full border-t border-gray-700/50 pt-4 mt-2 px-4">
+          <DomainScoresHeader scores={scores} />
         </div>
+      )}
+
+      {/* Wallet Connect Button */}
+      {/* Adjusted margin and centering */}
+      <div className="mt-4 mb-3 w-full flex justify-center px-4">
+        <WalletConnectButton />
       </div>
     </div>
   );

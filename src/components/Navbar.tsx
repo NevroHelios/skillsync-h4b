@@ -13,7 +13,11 @@ export default function Navbar() {
       <ToastContainer position="top-center" autoClose={2500} hideProgressBar newestOnTop closeOnClick pauseOnFocusLoss={false} theme="dark" />
       <nav className="w-full bg-gray-950/75 backdrop-blur-lg shadow border-b border-gray-700/50 flex flex-wrap items-center justify-between px-6 py-4 fixed top-0 z-10 dark:bg-gray-950/75">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-indigo-400">H4B</span>
+          <img 
+            src="https://res.cloudinary.com/dlrlet9fg/image/upload/v1745079464/Layer_1_sbyjkd.png" 
+            alt="H4B Logo" 
+            className="h-8 w-auto" 
+          />
         </div>
         <div className="flex items-center gap-4">
           <Link href="#about" className="hover:text-indigo-400 font-medium transition">About</Link>
