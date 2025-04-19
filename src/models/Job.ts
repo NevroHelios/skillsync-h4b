@@ -21,6 +21,9 @@ export interface IJob extends Document {
   status: 'Open' | 'Closed' | 'Draft';
   createdAt: Date;
   updatedAt: Date;
+  // --- New StarkNet Fields ---
+  starknetTokenId?: string; // Store as string, as u64 can exceed JS Number limits
+  starknetTransactionHash?: string; // Transaction hash for minting
 }
 
 // Mongoose Schema

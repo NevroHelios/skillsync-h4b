@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.8.0",
+    "@starknet-react/core": "^3.7.2",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.9",
     "get-starknet": "^3.3.0",
