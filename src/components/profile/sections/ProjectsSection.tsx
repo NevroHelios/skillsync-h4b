@@ -510,14 +510,16 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                             className={`flex gap-3 items-center bg-gray-800/50 rounded-full p-1.5 pl-2 border border-gray-700/50 shadow-inner 
                               focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/30 transition-all duration-300
                               ${submittingComment === p.name ? 'animate-pulse' : ''}`}
-                            onSubmit={e => {
+                            onSubmit={async (e) => {
                               e.preventDefault();
-                              if (commentInput.trim()) {
-                                setSubmittingComment(p.name);
-                                handleProjectComment(p.name, commentInput, null)
-                                  .finally(() => {
-                                    setTimeout(() => setSubmittingComment(null), 500);
-                                  });
+                              if (!commentInput.trim()) return;
+                              setSubmittingComment(p.name);
+                              try {
+                                await handleProjectComment(p.name, commentInput, null);
+                              } catch (err) {
+                                console.error('Error posting comment:', err);
+                              } finally {
+                                setTimeout(() => setSubmittingComment(null), 500);
                               }
                             }}
                           >

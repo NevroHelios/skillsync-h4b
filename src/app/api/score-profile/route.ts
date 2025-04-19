@@ -54,22 +54,23 @@ interface GfgStats {
 type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud" | "DSA"; // Add DSA
 
 interface ScoreRequestPayload {
-  selectedRepos: SelectedGitHubRepo[]; // Keep this, but understand it might contain *all* repos for profile page use case
+  selectedRepos: SelectedGitHubRepo[];
   leetCodeStats: LeetCodeStats | null;
   gfgStats: GfgStats | null;
   githubUsername?: string;
   leetcodeUsername?: string;
   gfgUsername?: string;
-  domain: Domain;
-  scoringType: "Domain" | "General"; // Add scoringType
+  domain?: Domain; // Make domain optional
+  scoringType: "Domain" | "General";
 }
 // --- End Interfaces ---
 
 
 // Function to construct the prompt for the LLM
 function constructPrompt(data: ScoreRequestPayload): string {
+  const isDomainSpecific = data.scoringType === "Domain" && data.domain;
   const targetDomain = data.domain;
-  const analysisType = data.scoringType === "General" ? "General Analysis" : `Domain Analysis for ${targetDomain}`;
+  const analysisType = isDomainSpecific ? `Domain Analysis for ${targetDomain}` : "General Repository Analysis";
 
   let prompt = `Perform a **${analysisType}** based on the following developer profile data.
 Focus primarily on the developer's GitHub activity and competitive programming stats (if provided).
@@ -82,8 +83,7 @@ Developer Usernames:
 GitHub Repositories:\n`;
 
   if (data.selectedRepos.length > 0) {
-    // List all provided repos, indicate if it's for domain-specific analysis
-    prompt += `Analyzing ${data.selectedRepos.length} repositories${data.scoringType === 'Domain' ? ` with a focus on **${targetDomain}** relevance` : ''}:\n`;
+    prompt += `Analyzing ${data.selectedRepos.length} repositories${isDomainSpecific ? ` with a focus on **${targetDomain}** relevance` : ''}:\n`;
     data.selectedRepos.forEach((repo, index) => {
       prompt += `${index + 1}. ${repo.name} (${repo.language || 'N/A'}): ${repo.description || 'No description'}. Stars: ${repo.stargazers_count}, Forks: ${repo.forks_count}. Topics: ${repo.topics?.join(', ') || 'None'}. Last Push: ${repo.pushed_at}\n`;
     });
@@ -103,13 +103,21 @@ GitHub Repositories:\n`;
     prompt += "- GeeksforGeeks: Stats not available or failed to fetch.\n";
   }
 
-  prompt += `\nInstructions:
-1.  Evaluate the developer's proficiency, focusing on the **${targetDomain}** domain${data.scoringType === 'General' ? ' and general software engineering skills' : ''}.
+  prompt += `\nInstructions:\n`;
+  if (isDomainSpecific) {
+    prompt += `1.  Evaluate the developer's proficiency, focusing on the **${targetDomain}** domain.
 2.  Consider the relevance, complexity, and activity of the GitHub repositories provided. Look for evidence of ${targetDomain} skills, patterns, and best practices. For "DSA", look for algorithm implementations, data structure usage, contest solutions, etc., across repos AND consider CP stats heavily.
 3.  Factor in LeetCode/GFG performance as indicators of problem-solving ability, especially relevant for "DSA" and "Backend".
-4.  Provide a concise analysis (2-3 paragraphs) summarizing strengths and potential areas for improvement related to ${targetDomain}${data.scoringType === 'General' ? ' and overall profile' : ''}.
+4.  Provide a concise analysis (2-3 paragraphs) summarizing strengths and potential areas for improvement related to **${targetDomain}**.
 5.  Conclude with an overall score reflecting their estimated proficiency **specifically in the ${targetDomain} domain** on a scale of 0-100. Format the score clearly as: "Overall Score: [score]/100". Base the score primarily on demonstrated skills and experience shown in the provided data relevant to the target domain.
 `;
+  } else { // General Analysis Prompt
+    prompt += `1.  Provide a general analysis of the developer's profile based on the GitHub repositories and competitive programming stats.
+2.  Identify overall strengths, potential technical interests, and general software engineering practices visible in the repositories (e.g., code structure, commit frequency, use of features like issues/PRs if inferrable).
+3.  Comment on problem-solving ability based on CP stats, if available.
+4.  Summarize the findings in 2-3 paragraphs. Do **not** provide a numerical score.
+`;
+  }
 
   return prompt;
 }
@@ -128,8 +136,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Domain is required for Domain scoring type.' }, { status: 400 });
     }
 
-     // Validate domain if provided
-    if (body.domain) {
+     // Validate domain if provided and required
+    if (body.scoringType === 'Domain' && body.domain) {
         const validDomains: Domain[] = ["AI/ML", "Frontend", "Backend", "Cloud", "DSA"]; // Add DSA
         if (!validDomains.includes(body.domain)) {
             return NextResponse.json({ error: "Invalid domain specified" }, { status: 400 });

@@ -107,11 +107,8 @@ const JobCard = ({ job }: { job: JobListing }) => (
         Posted: {new Date(job.createdAt).toLocaleDateString()}
       </span>
       <div className="flex space-x-2">
-        <Link href={`/hr/jobs/${job._id}/edit`} className="text-xs text-blue-400 hover:text-blue-300">
-          Edit
-        </Link>
-        <Link href={`/hr/jobs/${job._id}`} className="text-xs text-indigo-400 hover:text-indigo-300">
-          View Details →
+        <Link href={`/hr/jobs/${job._id}/applicants`} className="text-xs text-indigo-400 hover:text-indigo-300">
+          View Applicants →
         </Link>
       </div>
     </div>

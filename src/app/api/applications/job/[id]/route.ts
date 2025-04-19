@@ -48,9 +48,10 @@ export async function GET(
     await dbConnect();
     
     // Verify the job exists and belongs to the HR user
+    // Convert user.id string to ObjectId for comparison
     const job = await JobModel.findOne({
-      _id: jobId,
-      postedBy: user.id
+      _id: new mongoose.Types.ObjectId(jobId),
+      postedBy: new mongoose.Types.ObjectId(user.id) // Convert session user ID to ObjectId
     }).lean();
     
     if (!job) {
@@ -60,36 +61,62 @@ export async function GET(
       );
     }
     
-    // Get applications from MongoDB with user information
-    const client = await clientPromise;
-    const db = client.db();
-    
-    // Use aggregation to join with users collection
+    // Use aggregation to join with users and then profiles collection
+    // Get the database instance from the mongoose connection
+    const db = mongoose.connection.db;
     const applications = await db.collection('jobapplications')
       .aggregate([
         { $match: { jobId: new mongoose.Types.ObjectId(jobId) } },
+        // First, lookup the user details
         {
           $lookup: {
-            from: 'users',
+            from: 'users', // The collection containing user login info (name, email, photo)
             localField: 'userId',
-            foreignField: '_id',
+            foreignField: '_id', // Assuming 'users' collection uses _id
             as: 'userInfo'
           }
         },
-        { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: true } }, // Keep application even if user lookup fails
+        // Second, lookup the developer profile using the email from userInfo
+        {
+          $lookup: {
+            from: 'profiles', // The collection containing detailed developer profiles
+            localField: 'userInfo.email', // Use the email fetched from the 'users' collection
+            foreignField: 'email', // Assuming 'profiles' collection uses email as the key
+            as: 'profileInfo'
+          }
+        },
+        { $unwind: { path: '$profileInfo', preserveNullAndEmptyArrays: true } }, // Keep application even if profile lookup fails
+        // Project the desired combined output
         {
           $project: {
-            _id: 1,
+            _id: 1, // Application ID
             userId: 1,
             coverLetter: 1,
-            resume: 1,
+            resume: 1, // Keep resume if it exists
             status: 1,
             createdAt: 1,
             updatedAt: 1,
+            // Basic user info (from 'users' collection)
             user: {
               name: '$userInfo.name',
               email: '$userInfo.email',
               photo: '$userInfo.photo'
+            },
+            // Detailed profile info (from 'profiles' collection)
+            profile: {
+              // Select the fields you need from the profile
+              bio: '$profileInfo.bio',
+              skills: '$profileInfo.skills',
+              github: '$profileInfo.github',
+              leetcode: '$profileInfo.leetcode',
+              gfg: '$profileInfo.gfg',
+              scores: '$profileInfo.scores',
+              leetCodeStats: '$profileInfo.leetCodeStats',
+              gfgStats: '$profileInfo.gfgStats',
+              photo: `$profileInfo.photo`, // Assuming photo is in the profile collection
+              projects: '$profileInfo.projects' // Add projects field
+              // Add other relevant profile fields here
             }
           }
         },

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { encode } from "starknet";
 import { FaSpinner } from "react-icons/fa";
@@ -9,6 +9,7 @@ import { FaSpinner } from "react-icons/fa";
 // Import types and components
 import { Certificate, Experience, Project, CPProfile, Skill } from "../../components/profile/types";
 import CertificatePreviewModal from "../../components/profile/CertificatePreviewModal";
+import ProjectChatbot from "@/components/ProjectChatbot";
 
 // Import Section Components
 import ProfileHeader from "@/components/profile/sections/ProfileHeader";
@@ -123,6 +124,10 @@ interface UserProfile {
 export default function Profile() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get("email");
+  const profileEmail = emailParam || session?.user?.email || '';
+
   const [user, setUser] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -155,17 +160,7 @@ export default function Profile() {
     skills: string[];
     experience: string;
   }>({ name: "", description: "", link: "", skills: [], experience: "" });
-  const [projectInteractions, setProjectInteractions] = useState<
-    Record<
-      string,
-      {
-        likes: number;
-        dislikes: number;
-        userLike: "like" | "dislike" | null;
-        comments: Comment[];
-      }
-    >
-  >({});
+  const [projectInteractions, setProjectInteractions] = useState<Record<string, any>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [replyingTo, setReplyingTo] = useState<Record<string, string | null>>({});
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
@@ -177,9 +172,9 @@ export default function Profile() {
       router.replace("/auth/signin");
       return;
     }
-    if (session?.user?.email) {
+    if (profileEmail) {
       setLoading(true);
-      fetch(`/api/profile?email=${session.user.email}`)
+      fetch(`/api/profile?email=${encodeURIComponent(profileEmail)}`)
         .then((res) => (res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)))
         .then((data: UserProfile) => {
           setUser(data);
@@ -210,7 +205,7 @@ export default function Profile() {
         })
         .finally(() => setLoading(false));
     }
-  }, [session, status, router]);
+  }, [session, status, router, profileEmail]);
 
   const saveProfile = useCallback(
     async (profileData: Partial<UserProfile>) => {
@@ -339,6 +334,47 @@ export default function Profile() {
     },
     [session?.user?.email]
   );
+
+  const fetchProjectInteractions = useCallback(async () => {
+    if (!profileEmail || !session?.user?.email) return;
+    try {
+      const res = await fetch(
+        `/api/project-interactions?email=${encodeURIComponent(profileEmail)}&viewerEmail=${encodeURIComponent(session.user.email)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setProjectInteractions(data);
+      } else {
+        console.warn('Failed to fetch project interactions');
+      }
+    } catch (err) {
+      console.error('Error fetching project interactions:', err);
+    }
+  }, [profileEmail, session]);
+
+  useEffect(() => {
+    fetchProjectInteractions();
+  }, [fetchProjectInteractions]);
+
+  const handleProjectComment = async (
+    projectName: string,
+    comment: string,
+    parentId: string | null
+  ) => {
+    if (!profileEmail) return;
+    try {
+      const res = await fetch('/api/project-interactions/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectOwnerEmail: profileEmail, projectName, comment, parentId })
+      });
+      if (!res.ok) throw new Error('Failed to post comment');
+      await fetchProjectInteractions();
+    } catch (err) {
+      console.error('Error posting project comment:', err);
+      toast.error('Could not post comment');
+    }
+  };
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -490,6 +526,54 @@ export default function Profile() {
     }
   };
 
+  const updateProjectsOnServer = async (updatedProjects: Project[]) => {
+    if (!session?.user?.email) return;
+    try {
+      const payload: any = {
+        email: session.user.email,
+        name,
+        bio,
+        photo,
+        linkedin,
+        github,
+        leetcode,
+        gfg,
+        certificates,
+        experiences,
+        projects: updatedProjects,
+        cpProfiles,
+        skills,
+        githubRepos,
+        leetCodeStats,
+        gfgStats,
+      };
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      toast.success('Projects updated in profile!');
+    } catch (err: any) {
+      console.error('Error updating projects:', err);
+      toast.error(`Could not save projects: ${err.message || err}`);
+    }
+  };
+
+  const handleAddProject = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newProject.name.trim()) {
+      toast.warn('Project name is required');
+      return;
+    }
+    const updated = [...projects, newProject];
+    setProjects(updated);
+    setNewProject({ name: '', description: '', link: '', skills: [], experience: '' });
+    setShowAddProject(false);
+    // Persist only projects via full profile payload
+    await updateProjectsOnServer(updated);
+  };
+
   if (status === "loading" || loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-950">
@@ -588,12 +672,15 @@ export default function Profile() {
               projectInteractions={projectInteractions}
               session={session}
               user={user}
-              handleProjectLike={() => {}}
-              handleProjectComment={() => {}}
+              handleProjectLike={async () => { /* TODO: implement likes */ }}
+              handleProjectComment={handleProjectComment}
               renderComments={() => {}}
               commentInputs={commentInputs}
               setCommentInputs={setCommentInputs}
             />
+            {projects.length > 0 && (
+              <ProjectChatbot projects={projects.map((p) => ({ name: p.name, description: p.description }))} />
+            )}
             <SkillsSection skills={skills} />
             <CertificatesSection
               certificates={certificates}
@@ -611,7 +698,7 @@ export default function Profile() {
           githubRepos={githubRepos}
           skills={skills}
           experiences={experiences}
-          handleAddProject={() => {}}
+          handleAddProject={handleAddProject}
         />
       </div>
       <CertificatePreviewModal
