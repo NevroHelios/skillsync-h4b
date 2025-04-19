@@ -1,25 +1,18 @@
 import clientPromise from "@/lib/mongodb";
 import { NextRequest, NextResponse } from 'next/server';
 
-type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud";
-
-interface UpdateScorePayload {
-  email: string;
-  domain: Domain;
-  score: number;
-  repos: string[]; // Array of repository URLs
-}
+type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud" | "DSA"; // Add DSA
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, domain, score, repos }: UpdateScorePayload = await req.json();
+    const { email, domain, score, repos }: { email: string; domain: Domain; score: number; repos: string[] } = await req.json();
 
     if (!email || !domain || score === undefined || score === null || !Array.isArray(repos)) {
       return NextResponse.json({ error: "Missing required fields: email, domain, score, repos" }, { status: 400 });
     }
 
     // Validate domain
-    const validDomains: Domain[] = ["AI/ML", "Frontend", "Backend", "Cloud"];
+    const validDomains: Domain[] = ["AI/ML", "Frontend", "Backend", "Cloud", "DSA"]; // Add DSA
     if (!validDomains.includes(domain)) {
         return NextResponse.json({ error: "Invalid domain specified" }, { status: 400 });
     }

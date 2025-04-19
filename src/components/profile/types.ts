@@ -18,6 +18,7 @@ export type Experience = {
 };
 
 export interface Project {
+  private _id(_id: any): void;
   name: string;
   description?: string;
   link?: string;

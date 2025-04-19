@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FaGithub, FaSpinner, FaInfoCircle, FaCheckCircle, FaTimesCircle, FaBrain, FaSearch } from "react-icons/fa";
 import { SiLeetcode, SiGeeksforgeeks } from "react-icons/si";
 import { toast } from "react-toastify";
+import DomainScoresHeader from "@/components/profile/DomainScoresHeader"; // Import DomainScoresHeader
 
 // Define a type for GitHub Repos
 interface GitHubRepo {
@@ -70,6 +71,16 @@ interface LeetCodeStats {
   submissionCalendar?: Record<string, number>;
 }
 
+type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud" | "DSA" | ""; // Add DSA
+type ScoringType = "Domain" | "General"; // Add scoring type
+
+// Define the structure of the score object stored for each domain
+interface DomainScoreData {
+  score: number;
+  repos?: string[];
+  lastUpdated?: Date | string;
+}
+
 // Define a type for the user profile data fetched
 interface UserProfile {
   name?: string;
@@ -81,9 +92,8 @@ interface UserProfile {
   githubRepos?: GitHubRepo[];
   leetCodeStats?: LeetCodeStats | null;
   gfgStats?: GfgStats | null;
+  scores?: { [key in Domain]?: DomainScoreData | number | null }; // Ensure Domain includes DSA
 }
-
-type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud" | "";
 
 export default function GetScorePage() {
   const { data: session, status } = useSession();
@@ -96,6 +106,7 @@ export default function GetScorePage() {
   const [isStreaming, setIsStreaming] = useState(false); // Add state to track streaming
   const [searchTerm, setSearchTerm] = useState(""); // State for search term
   const [selectedDomain, setSelectedDomain] = useState<Domain>(""); // State for selected domain
+  const [scoringType, setScoringType] = useState<ScoringType>("Domain"); // State for scoring type
 
   useEffect(() => {
     if (status === "loading") return;
@@ -113,11 +124,9 @@ export default function GetScorePage() {
           return res.json();
         })
         .then((data) => {
-          setProfile(data);
-          // Ensure stats are initialized correctly if missing
-          if (!data.githubRepos) data.githubRepos = [];
-          if (!data.leetCodeStats) data.leetCodeStats = null;
-          if (!data.gfgStats) data.gfgStats = null;
+          // Ensure scores is initialized correctly if missing
+          if (!data.scores) data.scores = {}; // Initialize scores if missing
+          setProfile(data); // Set the fetched profile data
         })
         .catch((err) => {
           console.error("Error fetching profile:", err);
@@ -138,12 +147,7 @@ export default function GetScorePage() {
       if (isSelected) {
         return prevSelected.filter((r) => r.html_url !== repo.html_url);
       } else {
-        if (prevSelected.length < 5) {
-          return [...prevSelected, repo];
-        } else {
-          toast.warn("You can select a maximum of 5 repositories.");
-          return prevSelected;
-        }
+        return [...prevSelected, repo];
       }
     });
   };
@@ -188,14 +192,15 @@ export default function GetScorePage() {
       toast.error("Please select at least one repository.");
       return;
     }
-    if (!selectedDomain) {
+    // Require domain only if scoring type is "Domain"
+    if (scoringType === "Domain" && !selectedDomain) {
       toast.error("Please select a domain to score against.");
       return;
     }
 
-    setIsLoading(true); // Indicate API call started
-    setIsStreaming(true); // Indicate streaming started
-    setScoreResult({ score: null, output: "", error: null }); // Reset previous results, initialize output as empty string
+    setIsLoading(true);
+    setIsStreaming(true);
+    setScoreResult({ score: null, output: "", error: null });
 
     const payload = {
       selectedRepos: selectedRepos.map((repo) => ({
@@ -214,7 +219,9 @@ export default function GetScorePage() {
       githubUsername: profile.github,
       leetcodeUsername: profile.leetcode,
       gfgUsername: profile.gfg,
-      domain: selectedDomain, // Add selected domain to payload
+      scoringType: scoringType, // Add scoring type to payload
+      // Conditionally add domain based on scoring type
+      ...(scoringType === "Domain" && { domain: selectedDomain }),
     };
 
     try {
@@ -258,9 +265,31 @@ export default function GetScorePage() {
       const finalScore = parseScoreFromOutput(accumulatedOutput);
       setScoreResult((prev) => ({ ...prev, score: finalScore }));
 
-      if (finalScore !== null) {
-        toast.success("Analysis complete!");
-        await updateProfileScore(selectedDomain, finalScore, selectedRepos.map((r) => r.html_url));
+      // Only update profile score if a specific domain was targeted
+      if (scoringType === "Domain" && selectedDomain && finalScore !== null) {
+        toast.success(`Analysis complete for ${selectedDomain}!`);
+        const repoUrls = selectedRepos.map((r) => r.html_url);
+        await updateProfileScore(selectedDomain, finalScore, repoUrls);
+
+        // Optimistically update profile state
+        setProfile((prevProfile) =>
+          prevProfile
+            ? {
+                ...prevProfile,
+                scores: {
+                  ...prevProfile.scores,
+                  [selectedDomain]: {
+                    score: finalScore,
+                    repos: repoUrls,
+                    lastUpdated: new Date().toISOString(),
+                  },
+                },
+              }
+            : null
+        );
+      } else if (finalScore !== null) {
+        toast.success("General analysis complete!");
+        // Handle general score display if needed, but don't save to domain-specific profile scores
       } else {
         toast.warn("Analysis complete, but score could not be extracted.");
       }
@@ -270,8 +299,8 @@ export default function GetScorePage() {
       toast.error(`Failed to get score: ${errorMessage}`);
       setScoreResult({ score: null, output: null, error: `Error occurred during scoring: ${errorMessage}` });
     } finally {
-      setIsLoading(false); // Indicate API call finished
-      setIsStreaming(false); // Indicate streaming finished
+      setIsLoading(false);
+      setIsStreaming(false);
     }
   };
 
@@ -305,13 +334,14 @@ export default function GetScorePage() {
     );
   }
 
+  // Profile is guaranteed non-null here
   return (
     <>
       <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-indigo-950 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto bg-gray-900/90 shadow-2xl rounded-2xl p-8 text-gray-100">
           <h1 className="text-3xl font-bold text-indigo-300 mb-2 text-center">Get Your AI Profile Score</h1>
           <p className="text-center text-gray-400 mb-6 text-sm max-w-2xl mx-auto">
-            Select a domain and up to 5 relevant GitHub repositories. We'll combine this with your LeetCode/GFG stats (if available) and use AI to generate an analysis and score for that specific domain.
+            Select relevant GitHub repositories. We'll combine this with your LeetCode/GFG stats (if available) and use AI to generate an analysis and score. Choose 'Score Specific Domain' to target a domain or 'General Repo Analysis' for a broader overview.
           </p>
 
           <div className="flex items-center gap-4 mb-8 p-4 bg-gray-800 rounded-lg border border-gray-700 shadow-md">
@@ -342,34 +372,72 @@ export default function GetScorePage() {
             </div>
           </div>
 
+          {/* Display Current Scores - Pass the potentially mixed scores object */}
+          {profile && profile.scores && Object.keys(profile.scores).length > 0 && (
+            <div className="mb-8">
+              <DomainScoresHeader scores={profile.scores} />
+            </div>
+          )}
+
+          {/* Select Scoring Type Section */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-indigo-400 mb-4">Select Scoring Domain</h3>
+            <h3 className="text-xl font-semibold text-indigo-400 mb-4">Select Analysis Type</h3>
             <div className="flex flex-wrap gap-3">
-              {(["AI/ML", "Frontend", "Backend", "Cloud"] as Domain[]).map((domain) => (
+              {(["Domain", "General"] as ScoringType[]).map((type) => (
                 <label
-                  key={domain}
+                  key={type}
                   className={`flex items-center px-4 py-2 rounded-lg border cursor-pointer transition duration-200 ${
-                    selectedDomain === domain
+                    scoringType === type
                       ? "bg-indigo-600 border-indigo-500 text-white"
                       : "bg-gray-800 border-gray-700 hover:border-indigo-600"
                   }`}
                 >
                   <input
                     type="radio"
-                    name="domain"
-                    value={domain}
-                    checked={selectedDomain === domain}
-                    onChange={() => setSelectedDomain(domain)}
+                    name="scoringType"
+                    value={type}
+                    checked={scoringType === type}
+                    onChange={() => setScoringType(type)}
                     className="form-radio h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500 mr-2"
                   />
-                  <span className="text-sm font-medium">{domain}</span>
+                  <span className="text-sm font-medium">{type === "Domain" ? "Score Specific Domain" : "General Repo Analysis"}</span>
                 </label>
               ))}
             </div>
           </div>
 
+          {/* Select Domain Section (Conditional) */}
+          {scoringType === "Domain" && (
+            <div className="mb-8 transition-opacity duration-300 ease-in-out">
+              <h3 className="text-xl font-semibold text-indigo-400 mb-4">Select Scoring Domain</h3>
+              <div className="flex flex-wrap gap-3">
+                {/* Add DSA to the list of selectable domains */}
+                {(["AI/ML", "Frontend", "Backend", "Cloud", "DSA"] as Domain[]).map((domain) => (
+                  <label
+                    key={domain}
+                    className={`flex items-center px-4 py-2 rounded-lg border cursor-pointer transition duration-200 ${
+                      selectedDomain === domain
+                        ? "bg-indigo-600 border-indigo-500 text-white"
+                        : "bg-gray-800 border-gray-700 hover:border-indigo-600"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="domain"
+                      value={domain}
+                      checked={selectedDomain === domain}
+                      onChange={() => setSelectedDomain(domain)}
+                      className="form-radio h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500 mr-2"
+                    />
+                    <span className="text-sm font-medium">{domain}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-indigo-400 mb-4">Select GitHub Repositories (Max 5)</h3>
+            <h3 className="text-xl font-semibold text-indigo-400 mb-4">Select GitHub Repositories</h3>
             <div className="relative mb-4">
               <input
                 type="text"
@@ -394,8 +462,7 @@ export default function GetScorePage() {
                         id={repo.html_url}
                         checked={selectedRepos.some((r) => r.html_url === repo.html_url)}
                         onChange={() => handleRepoSelection(repo)}
-                        disabled={selectedRepos.length >= 5 && !selectedRepos.some((r) => r.html_url === repo.html_url)}
-                        className="mt-1 form-checkbox h-5 w-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                        className="mt-1 form-checkbox h-5 w-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 cursor-pointer flex-shrink-0"
                       />
                       <label htmlFor={repo.html_url} className="flex-1 cursor-pointer">
                         <p className="font-medium text-indigo-300">{repo.name}</p>
@@ -424,13 +491,13 @@ export default function GetScorePage() {
                 <p className="text-xs text-gray-600 mt-1">Make sure your GitHub username is correct in your profile.</p>
               </div>
             )}
-            <p className="text-sm text-gray-400 mt-2 text-right">Selected {selectedRepos.length} of 5 repositories.</p>
+            <p className="text-sm text-gray-400 mt-2 text-right">Selected {selectedRepos.length} repositories.</p>
           </div>
 
           <div className="text-center mb-8">
             <button
               onClick={handleGetScore}
-              disabled={isLoading || selectedRepos.length === 0 || !selectedDomain}
+              disabled={isLoading || selectedRepos.length === 0 || (scoringType === 'Domain' && !selectedDomain)} // Update disabled condition
               className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-lg transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mx-auto text-lg"
             >
               {isLoading ? (
@@ -439,7 +506,11 @@ export default function GetScorePage() {
                 </>
               ) : (
                 <>
-                  <FaBrain className="mr-1" /> Get AI Score for {selectedDomain || "Domain"}
+                  <FaBrain className="mr-1" />
+                  {/* Adjust button text based on scoring type */}
+                  {scoringType === "Domain"
+                    ? `Get AI Score for ${selectedDomain || "Domain"}`
+                    : "Get General Analysis"}
                 </>
               )}
             </button>
@@ -448,7 +519,8 @@ export default function GetScorePage() {
           {(scoreResult.output || scoreResult.error || isLoading) && (
             <div className="mt-10 p-6 bg-gray-800 rounded-lg border border-gray-700 shadow-inner">
               <h3 className="text-2xl font-semibold text-indigo-400 mb-5 text-center">
-                AI Analysis Result {selectedDomain && `for ${selectedDomain}`}
+                {/* Adjust results header text */}
+                AI Analysis Result {scoringType === "Domain" && selectedDomain && `for ${selectedDomain}`}
               </h3>
 
               {scoreResult.error && !isLoading && (

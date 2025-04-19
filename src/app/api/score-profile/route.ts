@@ -42,7 +42,6 @@ interface GfgStats {
     totalProblemsSolved?: number;
     currentStreak?: string;
     maxStreak?: string;
-    maxStreak?: string;
   };
   solvedStats?: {
     basic?: { count: number };
@@ -52,64 +51,64 @@ interface GfgStats {
   };
 }
 
-type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud";
+type Domain = "AI/ML" | "Frontend" | "Backend" | "Cloud" | "DSA"; // Add DSA
 
 interface ScoreRequestPayload {
-  selectedRepos: SelectedGitHubRepo[];
+  selectedRepos: SelectedGitHubRepo[]; // Keep this, but understand it might contain *all* repos for profile page use case
   leetCodeStats: LeetCodeStats | null;
   gfgStats: GfgStats | null;
   githubUsername?: string;
   leetcodeUsername?: string;
   gfgUsername?: string;
-  domain: Domain; // Add domain field
+  domain: Domain;
+  scoringType: "Domain" | "General"; // Add scoringType
 }
 // --- End Interfaces ---
 
 
 // Function to construct the prompt for the LLM
 function constructPrompt(data: ScoreRequestPayload): string {
-  let prompt = `Analyze the following developer profile data focused on the **${data.domain}** domain and provide a concise evaluation.
+  const targetDomain = data.domain;
+  const analysisType = data.scoringType === "General" ? "General Analysis" : `Domain Analysis for ${targetDomain}`;
+
+  let prompt = `Perform a **${analysisType}** based on the following developer profile data.
+Focus primarily on the developer's GitHub activity and competitive programming stats (if provided).
 
 Developer Usernames:
 - GitHub: ${data.githubUsername || 'Not provided'}
 - LeetCode: ${data.leetcodeUsername || 'Not provided'}
 - GeeksforGeeks: ${data.gfgUsername || 'Not provided'}
 
-Selected GitHub Repositories (focused on ${data.domain}):\n`;
+GitHub Repositories:\n`;
 
   if (data.selectedRepos.length > 0) {
+    // List all provided repos, indicate if it's for domain-specific analysis
+    prompt += `Analyzing ${data.selectedRepos.length} repositories${data.scoringType === 'Domain' ? ` with a focus on **${targetDomain}** relevance` : ''}:\n`;
     data.selectedRepos.forEach((repo, index) => {
       prompt += `${index + 1}. ${repo.name} (${repo.language || 'N/A'}): ${repo.description || 'No description'}. Stars: ${repo.stargazers_count}, Forks: ${repo.forks_count}. Topics: ${repo.topics?.join(', ') || 'None'}. Last Push: ${repo.pushed_at}\n`;
     });
   } else {
-    prompt += "- None selected.\n";
+    prompt += "No specific repositories provided for analysis.\n";
   }
 
   prompt += "\nCompetitive Programming Stats:\n";
-  if (data.leetCodeStats) {
-    prompt += `- LeetCode: Solved ${data.leetCodeStats.totalSolved}/${data.leetCodeStats.totalQuestions}, Acceptance ${data.leetCodeStats.acceptanceRate?.toFixed(1)}%, Rank ${data.leetCodeStats.ranking}, Points ${data.leetCodeStats.contributionPoints}\n`;
+  if (data.leetCodeStats && data.leetCodeStats.status === 'success') {
+    prompt += `- LeetCode: ${data.leetCodeStats.totalSolved || 0} solved (${data.leetCodeStats.easySolved || 0}E/${data.leetCodeStats.mediumSolved || 0}M/${data.leetCodeStats.hardSolved || 0}H). Acceptance: ${data.leetCodeStats.acceptanceRate?.toFixed(1) || 'N/A'}%. Rank: ${data.leetCodeStats.ranking || 'N/A'}.\n`;
   } else {
-    prompt += "- LeetCode: Not provided or N/A.\n";
+    prompt += "- LeetCode: Stats not available or failed to fetch.\n";
   }
-  if (data.gfgStats?.info) {
-    prompt += `- GeeksforGeeks: Score ${data.gfgStats.info.codingScore}, Solved ${data.gfgStats.info.totalProblemsSolved}, Streak ${data.gfgStats.info.currentStreak} (Max ${data.gfgStats.info.maxStreak})\n`;
+  if (data.gfgStats && data.gfgStats.info) {
+     prompt += `- GeeksforGeeks: ${data.gfgStats.info.totalProblemsSolved || 0} solved. Score: ${data.gfgStats.info.codingScore || 0}.\n`;
   } else {
-    prompt += "- GeeksforGeeks: Not provided or N/A.\n";
+    prompt += "- GeeksforGeeks: Stats not available or failed to fetch.\n";
   }
 
-  prompt += `
-Instructions:
-- Evaluate the profile strictly based on the provided data and its relevance to the **${data.domain}** domain.
-- Consider repository activity (last push), topics, languages, stars/forks, and CP stats.
-- Provide a brief summary of strengths and potential weaknesses specifically related to the **${data.domain}** domain.
-- Conclude with an overall score out of 100, reflecting their proficiency and activity in the **${data.domain}** domain based *only* on the given information.
-
-Output Format (Strict):
-- Mention only the points without any descriptions.
-1. Strengths (related to ${data.domain})
-2. Potential Weaknesses (related to ${data.domain})
-3. Overall Score: [score]/100
-
+  prompt += `\nInstructions:
+1.  Evaluate the developer's proficiency, focusing on the **${targetDomain}** domain${data.scoringType === 'General' ? ' and general software engineering skills' : ''}.
+2.  Consider the relevance, complexity, and activity of the GitHub repositories provided. Look for evidence of ${targetDomain} skills, patterns, and best practices. For "DSA", look for algorithm implementations, data structure usage, contest solutions, etc., across repos AND consider CP stats heavily.
+3.  Factor in LeetCode/GFG performance as indicators of problem-solving ability, especially relevant for "DSA" and "Backend".
+4.  Provide a concise analysis (2-3 paragraphs) summarizing strengths and potential areas for improvement related to ${targetDomain}${data.scoringType === 'General' ? ' and overall profile' : ''}.
+5.  Conclude with an overall score reflecting their estimated proficiency **specifically in the ${targetDomain} domain** on a scale of 0-100. Format the score clearly as: "Overall Score: [score]/100". Base the score primarily on demonstrated skills and experience shown in the provided data relevant to the target domain.
 `;
 
   return prompt;
@@ -121,15 +120,21 @@ export async function POST(req: NextRequest) {
     const body: ScoreRequestPayload = await req.json();
 
     // Basic validation
-    if (!body || !Array.isArray(body.selectedRepos) || !body.domain) {
-      return NextResponse.json({ error: 'Invalid request body. Missing selectedRepos or domain.' }, { status: 400 });
+    if (!body || !Array.isArray(body.selectedRepos) || !body.scoringType) {
+      return NextResponse.json({ error: 'Invalid request body. Missing selectedRepos or scoringType.' }, { status: 400 });
     }
-     // Validate domain
-    const validDomains: Domain[] = ["AI/ML", "Frontend", "Backend", "Cloud"];
-    if (!validDomains.includes(body.domain)) {
-        return NextResponse.json({ error: "Invalid domain specified" }, { status: 400 });
+    // Domain is required only if scoringType is 'Domain'
+    if (body.scoringType === 'Domain' && !body.domain) {
+        return NextResponse.json({ error: 'Domain is required for Domain scoring type.' }, { status: 400 });
     }
 
+     // Validate domain if provided
+    if (body.domain) {
+        const validDomains: Domain[] = ["AI/ML", "Frontend", "Backend", "Cloud", "DSA"]; // Add DSA
+        if (!validDomains.includes(body.domain)) {
+            return NextResponse.json({ error: "Invalid domain specified" }, { status: 400 });
+        }
+    }
 
     const prompt = constructPrompt(body);
 
@@ -176,7 +181,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("Error in score-profile API:", error);
-     const message = error instanceof Error ? error.message : "An unknown error occurred";
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json({ error: "Failed to get score from AI model.", details: message }, { status: 500 });
   }
 }

@@ -38,6 +38,41 @@ export async function POST(req: Request) {
     if (!email) return new Response(JSON.stringify({ error: "Email required" }), { status: 400 });
     const client = await clientPromise;
 
+    // Get existing projects to compare with new projects list
+    const existingProfile = await client.db().collection("profiles").findOne(
+      { email },
+      { projection: { projects: 1 } }
+    );
+
+    const existingProjects = existingProfile?.projects || [];
+    const newProjectNames = projects ? projects.map(p => p.name) : [];
+    const deletedProjects = existingProjects.filter(
+      (existingProj) => !newProjectNames.includes(existingProj.name)
+    );
+
+    // Clean up likes and comments for deleted projects
+    if (deletedProjects.length > 0) {
+      const deletedProjectNames = deletedProjects.map(p => p.name);
+
+      // Delete likes for deleted projects
+      await client.db().collection("projectLikes").deleteMany({
+        projectOwnerEmail: email,
+        projectName: { $in: deletedProjectNames }
+      });
+
+      // Delete comments for deleted projects
+      await client.db().collection("projectComments").deleteMany({
+        projectOwnerEmail: email,
+        projectName: { $in: deletedProjectNames }
+      });
+
+      // Delete projects themselves
+      await client.db().collection("projects").deleteMany({
+        userEmail: email,
+        name: { $in: deletedProjectNames }
+      });
+    }
+
     // Save certificates as a separate collection as well as in the profile
     if (Array.isArray(certificates)) {
       const certsCollection = client.db().collection("certificates");

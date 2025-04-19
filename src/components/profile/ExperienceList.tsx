@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { FaBriefcase, FaPlus } from "react-icons/fa";
-import { Experience, Skill } from "./types"; // Import Skill type
+import { FaBriefcase, FaPlus, FaTrashAlt, FaTags } from "react-icons/fa"; // Added FaTrashAlt, FaTags
+import { Experience, Skill } from "./types";
 import Modal from "./Modal";
 
 type ExperienceListProps = {
