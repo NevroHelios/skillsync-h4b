@@ -1,23 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-function Toast({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) {
-  if (!message) return null;
-  return (
-    <div
-      className={`fixed top-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded shadow-lg z-50 transition-all
-        ${type === "success" ? "bg-green-700 text-white" : "bg-red-700 text-white"}`}
-      onClick={onClose}
-      style={{ cursor: "pointer" }}
-    >
-      {message}
-    </div>
-  );
-}
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -25,7 +11,7 @@ export default function Navbar() {
   return (
     <>
       <ToastContainer position="top-center" autoClose={2500} hideProgressBar newestOnTop closeOnClick pauseOnFocusLoss={false} theme="dark" />
-      <nav className="w-full bg-gray-900/80 shadow flex flex-wrap items-center justify-between px-6 py-4 fixed top-0 z-10 dark:bg-gray-900/80">
+      <nav className="w-full bg-gray-950/75 backdrop-blur-lg shadow border-b border-gray-700/50 flex flex-wrap items-center justify-between px-6 py-4 fixed top-0 z-10 dark:bg-gray-950/75">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold text-indigo-400">H4B</span>
         </div>

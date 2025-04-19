@@ -4,6 +4,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Navbar from "@/components/Navbar";
 import { Resend } from 'resend';
+import Hero from "@/components/Hero-section/Hero";
+import Security from "@/components/Security/Security";
+import Collaboration from "@/components/Collaboration/Collaboration";
+import Productivity from "@/components/Productivity/Productivity";
+import StickyNav from "@/components/Navbar/StickyNav";
+import Globe from "@/components/Footer/Globe";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -101,6 +107,26 @@ export default async function Home() {
     <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100">
       {/* Navbar */}
       <Navbar />
+
+      {/* Main Content */}
+       {/* <div className='relative'>
+            <img className='absolute top-0 transition ease-in duration-200 max-xl:right-[-1050px] xl:right-[-970px] -z-30 image' width='4377' src="https://github.githubassets.com/images/modules/site/home-campaign/hero-bg.webp" alt="" />
+          </div> */}
+          <div className='hero-section px-3 '>
+            <Hero/>
+          </div>
+          {/* <StickyNav/> */}
+          <div id='productivity' className='home-campaign-productivity px-4 pt-8 overflow-hidden'>
+            <Productivity/>
+          </div>
+          <div id='collaboration' className='home-campaign-productivity px-4 pt-8  overflow-hidden'>
+            <Collaboration/>
+          </div>
+          <div id='security' className='home-campaign-productivity px-4 pt-8 pb-16 overflow-hidden'>
+            <Security/>
+          </div>
+         {/* <Globe/> */}
+
 
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center flex-1 pt-32 pb-16 bg-gradient-to-br from-gray-900 via-gray-950 to-indigo-950 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-950 dark:to-indigo-950">
