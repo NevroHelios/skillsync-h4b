@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import mongoose from 'mongoose';
 import clientPromise from '@/lib/mongodb';
 import { authOptions, SessionUser } from '@/app/api/auth/[...nextauth]/route';
-import JobApplication, { APPLICATION_STATUS } from '@/models/JobApplication';
+import JobApplication, { APPLICATION_STATUS, ApplicationStatus } from '@/models/JobApplication';
 import JobModel from '@/models/Job';
 
 // Function to ensure mongoose is connected
@@ -11,96 +11,110 @@ async function dbConnect() {
   if (mongoose.connection.readyState >= 1) {
     return;
   }
-
   const client = await clientPromise;
   const uri = process.env.MONGODB_URI;
-  
-  return mongoose.connect(uri!);
+  if (!uri) throw new Error('Missing MONGODB_URI in environment variables');
+  return mongoose.connect(uri);
 }
 
-// PATCH endpoint to update application status
-export async function PATCH(
+// PUT endpoint for HR to update the status of a specific job application
+export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  // Get user session
   const session = await getServerSession(authOptions as any);
   const user = (session as any)?.user as SessionUser | undefined;
-  
-  // Ensure user is authenticated and has HR role
-  if (!session || !user || user.role !== 'hr') {
+
+  // 1. Authentication & Authorization Check
+  if (!session || !user || !user.id || user.role !== 'hr') {
     return NextResponse.json(
       { error: 'Unauthorized: HR role required' },
       { status: 401 }
     );
   }
-  
+
   const applicationId = params.id;
-  
+
+  // 2. Validate Application ID
   if (!applicationId || !mongoose.Types.ObjectId.isValid(applicationId)) {
     return NextResponse.json(
       { error: 'Invalid application ID' },
       { status: 400 }
     );
   }
-  
-  // Parse request body
-  let updateData;
+
+  let newStatus: ApplicationStatus;
+
+  // 3. Parse and Validate Request Body
   try {
-    updateData = await request.json();
+    const body = await request.json();
+    newStatus = body.status;
+
+    if (!newStatus || !APPLICATION_STATUS.includes(newStatus)) {
+      return NextResponse.json(
+        { error: 'Invalid status value provided.' },
+        { status: 400 }
+      );
+    }
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 }
-    );
+    console.error("Failed to parse request JSON:", error);
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
-  
-  // Validate status
-  const { status } = updateData;
-  
-  if (!status || !APPLICATION_STATUS.includes(status)) {
-    return NextResponse.json(
-      { error: 'Invalid application status', allowed: APPLICATION_STATUS },
-      { status: 400 }
-    );
-  }
-  
+
   try {
     await dbConnect();
-    
-    // Get application
+
+    // 4. Find the Application
     const application = await JobApplication.findById(applicationId);
-    
+
     if (!application) {
       return NextResponse.json(
         { error: 'Application not found' },
         { status: 404 }
       );
     }
-    
-    // Check if the HR user owns the job
-    const job = await JobModel.findOne({
-      _id: application.jobId,
-      postedBy: user.id
-    }).lean();
-    
+
+    // 5. Verify Job Ownership (Security Check!)
+    const job = await JobModel.findById(application.jobId).select('postedBy').lean();
     if (!job) {
-      return NextResponse.json(
-        { error: 'You do not have permission to update this application' },
-        { status: 403 }
-      );
+        // Should not happen if application exists, but good to check
+        return NextResponse.json({ error: 'Associated job not found.' }, { status: 404 });
     }
-    
-    // Update application status
-    application.status = status;
-    await application.save();
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Application status updated successfully'
-    });
+    if (job.postedBy.toString() !== user.id) {
+        return NextResponse.json(
+            { error: 'Forbidden: You do not own the job associated with this application.' },
+            { status: 403 }
+        );
+    }
+
+    // 6. Update the Status
+    application.status = newStatus;
+    application.updatedAt = new Date(); // Manually update timestamp
+    const updatedApplication = await application.save();
+
+    console.log(`Application status updated: ${updatedApplication._id} to ${newStatus} by HR User: ${user.id}`);
+
+    // 7. Return Success Response
+    return NextResponse.json(
+      {
+        _id: updatedApplication._id,
+        status: updatedApplication.status,
+        updatedAt: updatedApplication.updatedAt,
+      },
+      { status: 200 }
+    );
+
   } catch (error: any) {
-    console.error('Error updating application status:', error);
+    console.error('PUT /api/applications/[id]/status failed:', error);
+
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map((el: any) => el.message);
+      return NextResponse.json({ error: 'Validation failed', details: errors }, { status: 400 });
+    }
+    if (error.message.includes('timed out') || error.message.includes('ECONNREFUSED') || error.message.includes('topology was destroyed')) {
+      return NextResponse.json({ error: 'Database connection error.', details: error.message }, { status: 503 });
+    }
+
     return NextResponse.json(
       { error: 'Failed to update application status', details: error.message },
       { status: 500 }

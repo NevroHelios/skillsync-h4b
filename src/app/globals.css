@@ -24,3 +24,76 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* Basic styles for filter nodes */
+.filter-node {
+    min-width: 150px; /* Ensure nodes have some base width */
+    max-width: 250px;
+}
+
+.filter-node-header {
+    font-size: 11px; /* Smaller header text */
+}
+
+.filter-handle {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 2px !important; /* Square-ish handles */
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Style for buttons to add filters */
+.filter-add-btn {
+    background-color: #4a5568; /* gray-700 */
+    color: #e2e8f0; /* gray-300 */
+    border: 1px solid #718096; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    padding: 0.3rem 0.5rem; /* Adjust padding */
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-add-btn:hover {
+    background-color: #2d3748; /* gray-800 */
+    border-color: #a0aec0; /* gray-500 */
+}
+
+/* Specific node styles */
+.source-node {
+    background-color: #2f855a; /* green-700 adjust as needed */
+    border-color: #38a169; /* green-600 */
+}
+.source-node .filter-handle {
+    background-color: #68d391 !important; /* green-400 */
+}
+
+.output-node {
+    background-color: #6b46c1; /* purple-700 */
+    border-color: #805ad5; /* purple-600 */
+}
+.output-node .filter-handle {
+     background-color: #b794f4 !important; /* purple-400 */
+}
+
+/* Ensure dropdowns/inputs inside nodes don't drag the node */
+.nodrag {
+    pointer-events: all; /* Allow interaction */
+}
+
+/* Background for the main job display flow */
+.react-flow__minimap-bg {
+    background-color: rgba(55, 65, 81, 0.8); /* gray-700 with transparency */
+    border: 1px solid #4a5568; /* gray-600 */
+}
+
+.react-flow__controls-bg button {
+     background-color: rgba(55, 65, 81, 0.8); /* gray-700 with transparency */
+     border-bottom: 1px solid #4a5568; /* gray-600 */
+     fill: #cbd5e0; /* gray-400 */
+}
+.react-flow__controls-bg button:hover {
+    background-color: rgba(31, 41, 55, 0.9); /* gray-800 */
+}
