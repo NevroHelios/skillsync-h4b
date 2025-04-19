@@ -9,10 +9,12 @@ import { FiUser, FiMail, FiFileText, FiCalendar, FiEdit, FiCheck, FiX, FiClock, 
 import { FaStar, FaCodeBranch, FaTrophy } from 'react-icons/fa';
 import DomainScoresHeader from '@/components/profile/DomainScoresHeader';
 import { APPLICATION_STATUS, ApplicationStatus } from '@/models/JobApplication'; // Import status constants
-import { useAccount } from "@starknet-react/core";
-import { Contract } from "starknet";
+import { useStarknet } from "@/components/StarknetProvider"; // Replace useAccount with useStarknet
+import { Contract, stark } from "starknet";
 import { Buffer } from 'buffer'; // If using Buffer for encoding
 import WalletConnectModal from '@/components/WalletConnectModal';
+import WalletConnectButton from '@/components/WalletConnectButton';
+import { connect } from 'get-starknet';
 
 // Interfaces matching the data structure from the API
 interface DomainScoreData {
@@ -57,12 +59,16 @@ interface Applicant {
   } | null;
   hireNftUri?: string;
   hireNftTxHash?: string;
+  starknetAddress?: string; // Add starknetAddress at root level
 }
 
+// --- FIX: Update ABI to match contract entrypoint name and order ---
+// Your contract entrypoint is "mint_hire_nft", not "hire_developer".
+// Also, the ABI must match the order and names in your contract.
 const hireNftMinimalAbi = [
   {
     "type": "function",
-    "name": "hire_developer",
+    "name": "mint_hire_nft",
     "inputs": [
       { "name": "developer", "type": "core::starknet::contract_address::ContractAddress" },
       { "name": "job_id", "type": "core::felt252" },
@@ -76,12 +82,19 @@ const hireNftMinimalAbi = [
 ];
 
 const safeEncodeFelt252 = (str: string): string => {
-  const maxSize = 31; // Max characters for short string representation
-  if (str.length > maxSize) {
-    console.warn(`String "${str}" is too long for felt252 encoding. Truncating.`);
-    str = str.substring(0, maxSize);
+  // Only allow up to 31 ASCII chars for felt252 short string encoding
+  // If not ASCII or too long, return empty string (let contract handle error)
+  if (!/^[\x00-\x7F]*$/.test(str)) {
+    console.warn(`[safeEncodeFelt252] String "${str}" contains non-ASCII chars, not encoding.`);
+    return '';
   }
-  return '0x' + Buffer.from(str, 'utf8').toString('hex');
+  if (str.length > 31) {
+    console.warn(`[safeEncodeFelt252] String "${str}" is too long for felt252 encoding. Truncating.`);
+    str = str.substring(0, 31);
+  }
+  const hex = Buffer.from(str, 'utf8').toString('hex');
+  console.debug(`[safeEncodeFelt252] Encoded "${str}" to felt: 0x${hex}`);
+  return '0x' + hex;
 };
 
 const getExplorerUrl = (txHash: string): string | null => {
@@ -89,12 +102,16 @@ const getExplorerUrl = (txHash: string): string | null => {
   return `https://voyager.online/tx/${txHash}`;
 };
 
-// Helper function to check if a StarkNet address is valid (not all zeros or invalid)
-const isValidStarknetAddress = (address: string | undefined): boolean => {
+// Improved StarkNet address validation (accepts any non-zero, valid hex string with 0x prefix, 3-66 chars)
+const isValidStarknetAddress = (address: string | undefined | null): boolean => {
   if (!address) return false;
-  // Check if address is all zeros (except 0x prefix)
-  const strippedAddress = address.startsWith('0x') ? address.substring(2) : address;
-  return strippedAddress.length === 64 && !/^0*$/.test(strippedAddress);
+  if (typeof address !== "string") return false;
+  if (!address.startsWith('0x')) return false;
+  const stripped = address.slice(2);
+  if (stripped.length < 1 || stripped.length > 64) return false;
+  if (!/^[0-9a-fA-F]+$/.test(stripped)) return false;
+  if (/^0+$/.test(stripped)) return false;
+  return true;
 };
 
 export default function JobApplicantsPage() {
@@ -114,13 +131,44 @@ export default function JobApplicantsPage() {
   const [processingHireMintId, setProcessingHireMintId] = useState<string | null>(null);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [pendingApplicationForWallet, setPendingApplicationForWallet] = useState<Applicant | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [provider, setProvider] = useState<any>(null);
+  const [address, setAddress] = useState<string | null>(null);
 
-  const { account, address, isConnected, status: accountStatus } = useAccount();
+  const { account } = useStarknet();
 
   const jobId = params.id as string;
 
-  // Check if HR wallet is connected and valid
-  const hrWalletIsValid = isConnected && address && isValidStarknetAddress(address);
+  // Add state for HR to input company name, job title, and job id (like in post-job NFT mint)
+  const [hrCompanyName, setHrCompanyName] = useState('');
+  const [hrJobTitle, setHrJobTitle] = useState('');
+  const [hrJobId, setHrJobId] = useState('');
+
+  // Fix: Always get the wallet address from the correct source
+  const getHrWalletAddress = () => {
+    if (address && isValidStarknetAddress(address)) return address;
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("walletAddress");
+      if (local && isValidStarknetAddress(local)) return local;
+    }
+    return null;
+  };
+
+  const hrWalletAddress = getHrWalletAddress();
+  const hrWalletIsValid = Boolean(hrWalletAddress && isValidStarknetAddress(hrWalletAddress));
+
+  // --- FIX: Always persist the applicant's wallet address in the modal ---
+  // We keep a separate state for the applicant's wallet address to avoid it vanishing when the modal closes or state resets.
+  const [modalApplicantAddress, setModalApplicantAddress] = useState<string>("");
+
+  // When opening the modal, always set the modalApplicantAddress from the applicant's profile
+  useEffect(() => {
+    if (isWalletModalOpen && pendingApplicationForWallet) {
+      // Always use the profile address (never the root)
+      setModalApplicantAddress(pendingApplicationForWallet.profile?.starknetAddress || "");
+    }
+    // Don't clear modalApplicantAddress on close, so it persists during minting
+  }, [isWalletModalOpen, pendingApplicationForWallet]);
 
   useEffect(() => {
     const checkAuthAndFetch = async () => {
@@ -183,61 +231,98 @@ export default function JobApplicantsPage() {
 
   // Helper function to check the wallet connection
   const checkWalletConnection = (applicant: Applicant) => {
-    // First check if wallet is connected at all
-    if (!isConnected || !account) {
-      // Save the pending applicant data
-      setPendingApplicationForWallet(applicant);
-      // Open wallet connection modal
-      setIsWalletModalOpen(true);
-      return false;
-    }
-    
-    // Then check if the connected wallet address is valid
-    if (!hrWalletIsValid) {
-      toast.error("Your wallet address appears to be invalid. Please disconnect and connect again.");
+    // Only check for account and valid address
+    if (!account || !hrWalletIsValid) {
       setPendingApplicationForWallet(applicant);
       setIsWalletModalOpen(true);
       return false;
     }
-    
     return true;
   };
 
-  const handleMintHireNFT = async (applicant: Applicant) => {
+  const handleMintHireNFT = async (
+    applicant: Applicant,
+    uri: string,
+    companyNameOverride?: string,
+    jobTitleOverride?: string,
+    jobIdOverride?: string
+  ) => {
+    console.debug('[handleMintHireNFT] called', {
+      applicant,
+      uri,
+      companyNameOverride,
+      jobTitleOverride,
+      jobIdOverride,
+      hrWalletAddress,
+      hrWalletIsValid,
+      account,
+      contractAddress: process.env.NEXT_PUBLIC_STARKNET_CONTRACT_ADDRESS_HIRE,
+    });
+
     if (!jobDetails) {
       toast.error("Job details not loaded. Cannot mint.");
+      console.error('[handleMintHireNFT] jobDetails missing');
+      return;
+    }
+    if (!uri || !uri.trim()) {
+      toast.error("Please provide a valid metadata URI before minting.");
+      setHireMintError("Metadata URI is required.");
+      setHireMintingState('error');
+      console.error('[handleMintHireNFT] URI missing');
       return;
     }
 
     const hireContractAddress = process.env.NEXT_PUBLIC_STARKNET_CONTRACT_ADDRESS_HIRE;
+    console.debug('[handleMintHireNFT] contract address', hireContractAddress);
     if (!hireContractAddress) {
       setHireMintingState('error');
       const errorMsg = "Hire NFT contract address is not configured.";
       setHireMintError(errorMsg);
       toast.error(errorMsg);
+      console.error('[handleMintHireNFT] contract address missing');
       return;
     }
 
-    // Check if HR wallet is connected and valid
-    if (!hrWalletIsValid) {
-      if (!checkWalletConnection(applicant)) {
+    // --- FIX: Always use the applicant's wallet address from the profile, not the root object ---
+    // (Your backend puts the wallet address in profile.starknetAddress, not at root)
+    let developerAddress = applicant.profile?.starknetAddress;
+    if (!developerAddress || !isValidStarknetAddress(developerAddress)) {
+      setHireMintingState('error');
+      const errorMsg = `Applicant wallet address is missing or invalid. The applicant must connect their wallet in their profile before you can mint.`;
+      setHireMintError(errorMsg);
+      toast.error(errorMsg);
+      console.error('[handleMintHireNFT] No valid applicant address:', developerAddress);
+      return;
+    }
+
+    let usedAccount = account;
+    if (!usedAccount) {
+      try {
+        const starknet = await connect();
+        await starknet?.enable({ starknetVersion: "v4" });
+        setProvider(starknet.account);
+        setAddress(starknet.selectedAddress);
+        setIsConnected(true);
+        usedAccount = starknet.account;
+        console.log('[handleMintHireNFT] Connected account from Braavos/ArgentX:', usedAccount);
+      } catch (err) {
+        setHireMintingState('error');
+        setHireMintError("Failed to connect to wallet. Please try again.");
+        toast.error("Failed to connect to wallet.");
         return;
       }
     }
-
-    // Get developer's wallet address
-    const developerAddress = applicant.profile?.starknetAddress;
-    
-    // Validate developer's wallet address
-    if (!developerAddress || !isValidStarknetAddress(developerAddress)) {
+    if (!usedAccount) {
       setHireMintingState('error');
-      const errorMsg = `Cannot mint: ${applicant.user.name}'s wallet address is missing or invalid. They must connect their wallet in their profile.`;
-      setHireMintError(errorMsg);
-      toast.error(errorMsg);
+      setHireMintError("No StarkNet account found. Please reconnect your wallet.");
+      toast.error("No StarkNet account found. Please reconnect your wallet.");
       return;
     }
 
-    // Clear pending application as we're now processing it
+    const jobIdToUse = jobIdOverride || jobId;
+    const companyNameToUse = companyNameOverride || jobDetails.company;
+    const jobTitleToUse = jobTitleOverride || jobDetails.title;
+
     setPendingApplicationForWallet(null);
     setProcessingHireMintId(applicant._id);
     setHireMintingState('prompt');
@@ -245,18 +330,57 @@ export default function JobApplicantsPage() {
     setHireMintTxHash(null);
 
     try {
-      const jobIdFelt = safeEncodeFelt252(jobId);
-      const companyNameFelt = safeEncodeFelt252(jobDetails.company);
-      const jobTitleFelt = safeEncodeFelt252(jobDetails.title);
-      const metadataUri = `ipfs://hire_${applicant._id}_${jobId}`;
+      console.debug('[handleMintHireNFT] calldata (raw)', {
+        developerAddress,
+        jobIdToUse,
+        companyNameToUse,
+        jobTitleToUse,
+        uri: uri.trim(),
+      });
+
+      const jobIdFelt = safeEncodeFelt252(jobIdToUse);
+      const companyNameFelt = safeEncodeFelt252(companyNameToUse);
+      const jobTitleFelt = safeEncodeFelt252(jobTitleToUse);
+      const metadataUri = uri.trim();
       const uriFelt = safeEncodeFelt252(metadataUri);
 
-      const contract = new Contract(hireNftMinimalAbi, hireContractAddress, account);
+      console.debug('[handleMintHireNFT] calldata (felt252)', {
+        developerAddress,
+        jobIdFelt,
+        companyNameFelt,
+        jobTitleFelt,
+        uriFelt,
+      });
+
+      if (!jobIdFelt || !companyNameFelt || !jobTitleFelt || !uriFelt) {
+        throw new Error("One or more fields are invalid for felt252 encoding. Please check your inputs.");
+      }
+
+      console.debug('[handleMintHireNFT] Creating contract instance', {
+        abi: hireNftMinimalAbi,
+        address: hireContractAddress,
+        usedAccount,
+      });
+
+      const contract = new Contract(hireNftMinimalAbi, hireContractAddress, usedAccount);
+      if (!contract || !contract.providerOrAccount) {
+        throw new Error("Failed to create contract instance. Check contract address and wallet connection.");
+      }
+
+      console.log('[handleMintHireNFT] Contract instance:', contract);
 
       setHireMintingState('pending');
       toast.info("Sending Hire NFT transaction... Please approve in your wallet.");
 
-      const txResponse = await contract.invoke("hire_developer", [
+      console.debug('[handleMintHireNFT] Invoking mint_hire_nft', {
+        developerAddress,
+        jobIdFelt,
+        companyNameFelt,
+        jobTitleFelt,
+        uriFelt,
+      });
+
+      const txResponse = await contract.invoke("mint_hire_nft", [
         developerAddress,
         jobIdFelt,
         companyNameFelt,
@@ -264,13 +388,24 @@ export default function JobApplicantsPage() {
         uriFelt
       ]);
 
-      console.log("StarkNet Hire NFT Tx Response:", txResponse);
+      console.debug('[handleMintHireNFT] Tx Response', txResponse);
+
+      if (!txResponse || !txResponse.transaction_hash) {
+        throw new Error("No transaction hash returned from contract.invoke. Transaction may have failed.");
+      }
+
       setHireMintTxHash(txResponse.transaction_hash);
 
       setHireMintingState('success');
       toast.success("Hire NFT transaction sent! Saving details...");
 
       try {
+        console.debug('[handleMintHireNFT] Saving Hire NFT details to backend', {
+          applicantId: applicant._id,
+          metadataUri,
+          txHash: txResponse.transaction_hash,
+        });
+
         const updateResponse = await fetch(`/api/applications/${applicant._id}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -285,8 +420,6 @@ export default function JobApplicantsPage() {
           const errorData = await updateResponse.json();
           throw new Error(errorData.error || `Failed to save Hire NFT details: ${updateResponse.statusText}`);
         }
-
-        const updatedApplicationData = await updateResponse.json();
 
         setApplicants(prevApplicants =>
           prevApplicants.map(app =>
@@ -307,7 +440,7 @@ export default function JobApplicantsPage() {
       } catch (dbError: any) {
         console.error("Error saving Hire NFT details to DB:", dbError);
         setHireMintingState('error');
-        setHireMintError(`Transaction sent (${txResponse.transaction_hash.substring(0, 8)}...), but failed to save details to database: ${dbError.message}`);
+        setHireMintError(`Transaction sent (${txResponse.transaction_hash.substring(0, 8)}...), but failed to save details to DB: ${dbError.message}`);
         toast.error(`Hire NFT Transaction sent, but failed to save details: ${dbError.message}`);
       }
 
@@ -332,6 +465,7 @@ export default function JobApplicantsPage() {
       setHireMintError(errorMessage);
     } finally {
       setProcessingHireMintId(null);
+      console.debug('[handleMintHireNFT] finished');
     }
   };
 
@@ -345,53 +479,37 @@ export default function JobApplicantsPage() {
     }
 
     if (newStatus === 'accepted') {
-      const hireContractAddress = process.env.NEXT_PUBLIC_STARKNET_CONTRACT_ADDRESS_HIRE;
-      if (!hireContractAddress) {
-        toast.error("Hire NFT contract address is not configured. Cannot accept via minting.");
-        return;
+      // Instead of minting directly, open the modal for HR to enter the URI
+      setPendingApplicationForWallet(applicant);
+      setIsWalletModalOpen(true);
+      return;
+    }
+
+    setProcessingId(applicationId);
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update status: ${response.statusText}`);
       }
-      
-      // Check if wallet is connected before proceeding to mint
-      if (!hrWalletIsValid) {
-        if (!checkWalletConnection(applicant)) {
-          return;
-        }
-      }
-      
-      if (!applicant.starknetAddress || applicant.starknetAddress === "0x0000000000000000000000000000000000000000000000000000000000000001") {
-        toast.error(`Cannot mint: StarkNet address for applicant ${applicant.user.name} is missing or invalid.`);
-        return;
-      }
 
-      handleMintHireNFT(applicant);
+      setApplicants(prevApplicants =>
+        prevApplicants.map(app =>
+          app._id === applicationId ? { ...app, status: newStatus, updatedAt: new Date().toISOString() } : app
+        )
+      );
+      toast.success('Applicant status updated successfully!');
 
-    } else {
-      setProcessingId(applicationId);
-      try {
-        const response = await fetch(`/api/applications/${applicationId}/status`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to update status: ${response.statusText}`);
-        }
-
-        setApplicants(prevApplicants =>
-          prevApplicants.map(app =>
-            app._id === applicationId ? { ...app, status: newStatus, updatedAt: new Date().toISOString() } : app
-          )
-        );
-        toast.success('Applicant status updated successfully!');
-
-      } catch (error: any) {
-        console.error('Error updating status:', error);
-        toast.error(`Failed to update status: ${error.message}`);
-      } finally {
-        setProcessingId(null);
-      }
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      toast.error(`Failed to update status: ${error.message}`);
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -436,25 +554,65 @@ export default function JobApplicantsPage() {
       <h1 className="text-3xl font-bold text-indigo-300 mb-2">Applicants for: {jobTitle || 'Loading...'}</h1>
       <p className="text-gray-400 mb-8">Manage applications submitted for this job posting.</p>
 
+      {/* HR input fields for company, job title, job id (like post-job NFT mint) */}
+      <div className="mb-6 bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <h3 className="text-md font-semibold text-indigo-300 mb-2">HR NFT Minting Details</h3>
+        <div className="flex flex-col md:flex-row gap-4">
+          <input
+            type="text"
+            className="w-full md:w-1/3 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-gray-100"
+            placeholder="Company Name (override)"
+            value={hrCompanyName}
+            onChange={e => setHrCompanyName(e.target.value)}
+          />
+          <input
+            type="text"
+            className="w-full md:w-1/3 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-gray-100"
+            placeholder="Job Title (override)"
+            value={hrJobTitle}
+            onChange={e => setHrJobTitle(e.target.value)}
+          />
+          <input
+            type="text"
+            className="w-full md:w-1/3 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-gray-100"
+            placeholder="Job ID (override)"
+            value={hrJobId}
+            onChange={e => setHrJobId(e.target.value)}
+          />
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          You may override the company, job title, or job id for the NFT minting call. Leave blank to use the job's default values.
+        </p>
+      </div>
+
       {/* Wallet Connect Modal */}
       <WalletConnectModal 
         isOpen={isWalletModalOpen} 
         onClose={() => {
           setIsWalletModalOpen(false);
           setPendingApplicationForWallet(null);
+          // Do NOT clear modalApplicantAddress here, so it persists during minting
+          console.debug('[JobApplicantsPage] Modal closed');
         }}
-        applicantAddress={pendingApplicationForWallet?.profile?.starknetAddress ?? ''}
-        onMint={() => {
+        // Always use the persistent modalApplicantAddress for the modal
+        applicantAddress={modalApplicantAddress}
+        hrWalletAddress={hrWalletAddress}
+        hrWalletIsValid={hrWalletIsValid}
+        onMint={async (uri: string) => {
+          console.debug('[JobApplicantsPage] onMint called', { uri, pendingApplicationForWallet, modalApplicantAddress });
           if (pendingApplicationForWallet) {
-            setIsWalletModalOpen(false);
-            // Only proceed if wallet is now valid
-            if (hrWalletIsValid) {
-              handleMintHireNFT(pendingApplicationForWallet);
-            } else {
-              toast.error("Your wallet connection is invalid. Please disconnect and try again.");
-            }
+            // Pass the persistent modalApplicantAddress to handleMintHireNFT
+            await handleMintHireNFT(
+              { ...pendingApplicationForWallet, profile: { ...(pendingApplicationForWallet.profile || {}), starknetAddress: modalApplicantAddress } },
+              uri,
+              hrCompanyName,
+              hrJobTitle,
+              hrJobId
+            );
           }
         }}
+        mintingState={hireMintingState}
+        mintError={hireMintError}
       />
 
       {applicants.length === 0 ? (
@@ -463,24 +621,7 @@ export default function JobApplicantsPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {!hrWalletIsValid && (
-            <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-6">
-              <p className="text-yellow-400 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <span>
-                  Connect a valid StarkNet wallet to mint Hire NFTs. {isConnected ? "Your current wallet address appears invalid." : ""}
-                </span>
-              </p>
-              <button 
-                onClick={() => setIsWalletModalOpen(true)}
-                className="mt-2 px-4 py-2 bg-yellow-700 hover:bg-yellow-600 text-white rounded-md text-sm"
-              >
-                {isConnected ? "Reconnect Wallet" : "Connect Wallet"}
-              </button>
-            </div>
-          )}
+          
 
           {applicants.map(applicant => (
             <div key={applicant._id} className="bg-gray-800 rounded-lg shadow-md p-5 border border-gray-700 transition-all duration-300">
@@ -548,9 +689,6 @@ export default function JobApplicantsPage() {
                     <div className="mt-2 text-xs text-gray-400">
                       <span>Hire NFT Minted: </span>
                       <a
-                        href={getExplorerUrl(applicant.hireNftTxHash)!}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="text-indigo-400 hover:underline"
                         title="View Hire NFT Transaction on Explorer"
                       >
@@ -627,7 +765,7 @@ export default function JobApplicantsPage() {
                   )}
 
                   {/* Add a warning if the developer doesn't have a valid wallet address */}
-                  {!isValidStarknetAddress(applicant.profile?.starknetAddress) && (
+                  { (
                     <div className="mt-3 p-2 bg-orange-900/30 border border-orange-700/50 rounded-lg">
                       <p className="text-orange-400 text-sm flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
