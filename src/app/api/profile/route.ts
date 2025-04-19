@@ -1,4 +1,6 @@
 import clientPromise from "@/lib/mongodb";
+import { authOptions, SessionUser } from '@/app/api/auth/[...nextauth]/route';
+import { getServerSession } from "next-auth";
 
 export async function GET(req: Request) {
   try {
@@ -16,9 +18,20 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions as any);
+  const user = (session as any)?.user as SessionUser | undefined;
+
+  // Authentication Check
+  if (!session || !user || !user.email) {
+    return new Response(JSON.stringify({ error: "Unauthorized: Please sign in." }), { status: 401 });
+  }
+
   try {
+    const body = await req.json();
+    const email = user.email; // Use email from session for security
+
+    // Destructure expected fields, including wallet
     const {
-      email,
       name,
       bio,
       photo,
@@ -28,18 +41,24 @@ export async function POST(req: Request) {
       gfg,
       certificates,
       experiences,
-      projects, // This now includes skills and experience from the frontend
+      projects,
       cpProfiles,
       skills,
       githubRepos,
       leetCodeStats,
       gfgStats,
-    } = await req.json();
+      wallet, // Add wallet address here
+    } = body;
+
+    // Basic validation (add more as needed)
     if (!email) return new Response(JSON.stringify({ error: "Email required" }), { status: 400 });
+
     const client = await clientPromise;
+    const db = client.db();
+    const profilesCollection = db.collection("profiles");
 
     // Get existing projects to compare with new projects list
-    const existingProfile = await client.db().collection("profiles").findOne(
+    const existingProfile = await profilesCollection.findOne(
       { email },
       { projection: { projects: 1 } }
     );
@@ -55,19 +74,19 @@ export async function POST(req: Request) {
       const deletedProjectNames = deletedProjects.map(p => p.name);
 
       // Delete likes for deleted projects
-      await client.db().collection("projectLikes").deleteMany({
+      await db.collection("projectLikes").deleteMany({
         projectOwnerEmail: email,
         projectName: { $in: deletedProjectNames }
       });
 
       // Delete comments for deleted projects
-      await client.db().collection("projectComments").deleteMany({
+      await db.collection("projectComments").deleteMany({
         projectOwnerEmail: email,
         projectName: { $in: deletedProjectNames }
       });
 
       // Delete projects themselves
-      await client.db().collection("projects").deleteMany({
+      await db.collection("projects").deleteMany({
         userEmail: email,
         name: { $in: deletedProjectNames }
       });
@@ -75,7 +94,7 @@ export async function POST(req: Request) {
 
     // Save certificates as a separate collection as well as in the profile
     if (Array.isArray(certificates)) {
-      const certsCollection = client.db().collection("certificates");
+      const certsCollection = db.collection("certificates");
       for (const cert of certificates) {
         await certsCollection.updateOne(
           { title: cert.title, issuer: cert.issuer, year: cert.year, email },
@@ -87,7 +106,7 @@ export async function POST(req: Request) {
 
     // Save experiences as a separate collection as well as in the profile
     if (Array.isArray(experiences)) {
-      const expCollection = client.db().collection("experiences");
+      const expCollection = db.collection("experiences");
       for (const exp of experiences) {
         await expCollection.updateOne(
           { company: exp.company, years: exp.years, email },
@@ -99,7 +118,7 @@ export async function POST(req: Request) {
 
     // Save projects as a separate collection as well as in the profile
     if (Array.isArray(projects)) {
-      const projCollection = client.db().collection("projects");
+      const projCollection = db.collection("projects");
       for (const proj of projects) {
         // Define the structure to be saved in the 'projects' collection
         const projectData = {
@@ -123,7 +142,7 @@ export async function POST(req: Request) {
 
     // Save cpProfiles as a separate collection as well as in the profile
     if (Array.isArray(cpProfiles)) {
-      const cpCollection = client.db().collection("cpProfiles");
+      const cpCollection = db.collection("cpProfiles");
       for (const cp of cpProfiles) {
         await cpCollection.updateOne(
           { platform: cp.platform, handle: cp.handle, email },
@@ -135,7 +154,7 @@ export async function POST(req: Request) {
 
     // Save skills as a separate collection as well as in the profile
     if (Array.isArray(skills)) {
-      const skillsCollection = client.db().collection("skills");
+      const skillsCollection = db.collection("skills");
       await skillsCollection.updateOne(
         { email },
         { $set: { email, skills } },
@@ -143,44 +162,56 @@ export async function POST(req: Request) {
       );
     }
 
-    // Save everything in the profile document
-    const result = await client.db().collection("profiles").updateOne(
+    // Prepare the main profile update object
+    const profileUpdateData: any = {
+      email,
+      name,
+      bio,
+      photo,
+      linkedin,
+      github,
+      leetcode,
+      gfg,
+      certificates: certificates || [],
+      experiences: experiences || [],
+      projects: (projects || []).map(p => ({
+        name: p.name,
+        description: p.description,
+        link: p.link,
+        skills: p.skills || [],
+        experience: p.experience,
+      })),
+      cpProfiles: cpProfiles || [],
+      skills: skills || [],
+      githubRepos: githubRepos || [],
+      leetCodeStats: leetCodeStats || null,
+      gfgStats: gfgStats || null,
+      wallet: wallet || null, // Include wallet address in the update
+      updatedAt: new Date(), // Manually set update timestamp
+    };
+
+    // Perform the upsert operation
+    const result = await profilesCollection.updateOne(
       { email },
       {
-        $set: {
-          email,
-          name,
-          bio,
-          photo,
-          linkedin,
-          github,
-          leetcode,
-          gfg,
-          certificates: certificates || [],
-          experiences: experiences || [],
-          // Ensure the projects array saved in the profile includes skills and experience
-          projects: (projects || []).map(p => ({
-            name: p.name,
-            description: p.description,
-            link: p.link,
-            skills: p.skills || [], // Save skills in the profile's project array
-            experience: p.experience, // Save experience in the profile's project array
-          })),
-          cpProfiles: cpProfiles || [],
-          skills: skills || [],
-          githubRepos: githubRepos || [],
-          leetCodeStats: leetCodeStats || null,
-          gfgStats: gfgStats || null,
-        }
+        $set: profileUpdateData,
+        $setOnInsert: { createdAt: new Date() } // Set createdAt only on insert
       },
       { upsert: true }
     );
+
     if (result.acknowledged !== true) {
       throw new Error("MongoDB did not acknowledge the write.");
     }
-    return new Response(JSON.stringify({ success: true }));
+
+    // Fetch the updated profile to return it (optional, but good practice)
+    const updatedProfile = await profilesCollection.findOne({ email });
+
+    return new Response(JSON.stringify(updatedProfile), { status: 200 }); // Return updated profile
+
   } catch (err) {
-    console.error("MongoDB POST error:", err);
-    return new Response(JSON.stringify({ error: "Database error" }), { status: 500 });
+    console.error("MongoDB POST /api/profile error:", err);
+    const errorMessage = err instanceof Error ? err.message : "Database error";
+    return new Response(JSON.stringify({ error: "Database error", details: errorMessage }), { status: 500 });
   }
 }

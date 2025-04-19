@@ -12,6 +12,8 @@ export interface IJobApplication extends Document {
   resume?: string;
   status: ApplicationStatus;
   notes?: string; // For HR to add notes about the applicant
+  hireNftUri?: string; // NFT minted on acceptance/hire
+  hireNftTxHash?: string; // Transaction hash of the NFT minting
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,6 +64,17 @@ const JobApplicationSchema: Schema<IJobApplication> = new Schema(
       trim: true,
       default: null,
     },
+    // NFT minted on acceptance/hire
+    hireNftUri: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    hireNftTxHash: {
+      type: String,
+      trim: true,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -80,6 +93,30 @@ try {
 } catch (error) {
   // Model doesn't exist yet, define it
   JobApplication = mongoose.model<IJobApplication>('JobApplication', JobApplicationSchema);
+}
+
+// after status PUT succeeds
+async function handleStatusUpdate(newStatus: ApplicationStatus, starknetService: any, applicant: any, jobId: string, jobTitle: string, applicationId: string, metadataUri: string) {
+  if (newStatus === 'accepted' && starknetService) {
+    // Mint on‑chain
+    const { success, txHash, error } = await starknetService.hireDeveloper(
+      applicant.user.email,       // developer address
+      jobId,                      // felt job ID
+      jobTitle,                   // felt company name
+      jobTitle,                   // felt job title
+      `[IPFS URI or metadata JSON]`
+    );
+    if (success) {
+      // Update with hire NFT on our API
+      await fetch(`/api/applications/${applicationId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ status:'accepted', hireNftUri: metadataUri, hireNftTxHash: txHash })
+      });
+    } else {
+      toast.error(`Hire mint failed: ${error}`);
+    }
+  }
 }
 
 export default JobApplication;

@@ -14,7 +14,7 @@ async function dbConnect() {
 
   const client = await clientPromise;
   const uri = process.env.MONGODB_URI;
-  
+
   return mongoose.connect(uri!);
 }
 
@@ -23,44 +23,43 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  // Get user session
-  const session = await getServerSession(authOptions as any);
-  const user = (session as any)?.user as SessionUser | undefined;
-  
-  // Ensure user is authenticated and has HR role
-  if (!session || !user || user.role !== 'hr') {
-    return NextResponse.json(
-      { error: 'Unauthorized: HR role required' },
-      { status: 401 }
-    );
-  }
-  
-  const jobId = params.id;
-  
-  if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
-    return NextResponse.json(
-      { error: 'Invalid job ID' },
-      { status: 400 }
-    );
-  }
-  
   try {
+    const session = await getServerSession(authOptions as any);
+    const user = session?.user as SessionUser | undefined;
+
+    // Only allow HR users to access this endpoint
+    if (!session || !user || user.role !== 'hr') {
+      return NextResponse.json(
+        { error: 'Unauthorized. HR role required.' },
+        { status: 403 }
+      );
+    }
+
+    const jobId = params.id;
+
+    // Validate MongoDB ID
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return NextResponse.json(
+        { error: 'Invalid job ID format' },
+        { status: 400 }
+      );
+    }
+
     await dbConnect();
-    
-    // Verify the job exists and belongs to the HR user
-    // Convert user.id string to ObjectId for comparison
+
+    // Check if job exists and belongs to the requesting HR
     const job = await JobModel.findOne({
       _id: new mongoose.Types.ObjectId(jobId),
       postedBy: new mongoose.Types.ObjectId(user.id) // Convert session user ID to ObjectId
     }).lean();
-    
+
     if (!job) {
       return NextResponse.json(
         { error: 'Job not found or you do not have permission to access it' },
         { status: 404 }
       );
     }
-    
+
     // Use aggregation to join with users and then profiles collection
     // Get the database instance from the mongoose connection
     const db = mongoose.connection.db;
@@ -87,6 +86,7 @@ export async function GET(
           }
         },
         { $unwind: { path: '$profileInfo', preserveNullAndEmptyArrays: true } }, // Keep application even if profile lookup fails
+
         // Project the desired combined output
         {
           $project: {
@@ -97,6 +97,8 @@ export async function GET(
             status: 1,
             createdAt: 1,
             updatedAt: 1,
+            hireNftUri: 1,
+            hireNftTxHash: 1,
             // Basic user info (from 'users' collection)
             user: {
               name: '$userInfo.name',
@@ -114,21 +116,26 @@ export async function GET(
               scores: '$profileInfo.scores',
               leetCodeStats: '$profileInfo.leetCodeStats',
               gfgStats: '$profileInfo.gfgStats',
-              photo: `$profileInfo.photo`, // Assuming photo is in the profile collection
-              projects: '$profileInfo.projects' // Add projects field
-              // Add other relevant profile fields here
+              // IMPORTANT: Get the wallet address from the profile - prioritize starknetAddress field but also check wallet field
+              starknetAddress: { 
+                $cond: [
+                  { $ifNull: ['$profileInfo.starknetAddress', false] }, 
+                  '$profileInfo.starknetAddress', 
+                  // If starknetAddress doesn't exist, try the wallet field
+                  { $ifNull: ['$profileInfo.wallet', '0x0000000000000000000000000000000000000000000000000000000000000000'] }
+                ]
+              }
             }
           }
         },
-        { $sort: { createdAt: -1 } } // Newest first
-      ])
-      .toArray();
-    
+        { $sort: { updatedAt: -1 } } // Sort by update date (newest first)
+      ]).toArray();
+
     return NextResponse.json(applications);
   } catch (error: any) {
-    console.error('Error retrieving job applications:', error);
+    console.error('Error fetching job applications:', error);
     return NextResponse.json(
-      { error: 'Failed to retrieve applications', details: error.message },
+      { error: 'Failed to fetch job applications', details: error.message },
       { status: 500 }
     );
   }

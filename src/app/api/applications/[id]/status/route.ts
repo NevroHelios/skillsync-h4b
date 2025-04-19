@@ -44,11 +44,16 @@ export async function PUT(
   }
 
   let newStatus: ApplicationStatus;
+  let hireNftUri: string | undefined; // Declare variables outside the try block
+  let hireNftTxHash: string | undefined;
 
   // 3. Parse and Validate Request Body
   try {
     const body = await request.json();
     newStatus = body.status;
+    // Assign values inside the try block
+    hireNftUri = body.hireNftUri;
+    hireNftTxHash = body.hireNftTxHash;
 
     if (!newStatus || !APPLICATION_STATUS.includes(newStatus)) {
       return NextResponse.json(
@@ -59,6 +64,11 @@ export async function PUT(
   } catch (error) {
     console.error("Failed to parse request JSON:", error);
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+  }
+
+  // Check if newStatus was successfully assigned before proceeding
+  if (!newStatus) {
+    return NextResponse.json({ error: 'Failed to determine status from request body.' }, { status: 400 });
   }
 
   try {
@@ -77,7 +87,6 @@ export async function PUT(
     // 5. Verify Job Ownership (Security Check!)
     const job = await JobModel.findById(application.jobId).select('postedBy').lean();
     if (!job) {
-        // Should not happen if application exists, but good to check
         return NextResponse.json({ error: 'Associated job not found.' }, { status: 404 });
     }
     if (job.postedBy.toString() !== user.id) {
@@ -89,6 +98,9 @@ export async function PUT(
 
     // 6. Update the Status
     application.status = newStatus;
+    // Save hire NFT info if provided
+    if (hireNftUri) application.hireNftUri = hireNftUri;
+    if (hireNftTxHash) application.hireNftTxHash = hireNftTxHash;
     application.updatedAt = new Date(); // Manually update timestamp
     const updatedApplication = await application.save();
 
@@ -100,12 +112,14 @@ export async function PUT(
         _id: updatedApplication._id,
         status: updatedApplication.status,
         updatedAt: updatedApplication.updatedAt,
+        hireNftUri: updatedApplication.hireNftUri,
+        hireNftTxHash: updatedApplication.hireNftTxHash,
       },
       { status: 200 }
     );
 
   } catch (error: any) {
-    console.error('PUT /api/applications/[id]/status failed:', error);
+    console.error(`PUT /api/applications/[id]/status failed: ${error.name} - ${error.message}`);
 
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((el: any) => el.message);

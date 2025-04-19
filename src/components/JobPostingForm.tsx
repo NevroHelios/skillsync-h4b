@@ -19,6 +19,7 @@ export function JobPostingForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [jobUri, setJobUri] = useState<string | null>(null);
+  const [postedJobId, setPostedJobId] = useState<string | null>(null);
 
   const handleWalletConnect = (address: string) => {
     setWalletAddress(address);
@@ -58,6 +59,7 @@ export function JobPostingForm() {
       
       if (res.ok) {
         const data = await res.json();
+        setPostedJobId(data._id || data.id);
         setSuccessMessage(`Job posted successfully to backend!`);
         setJobUri(data.ipfsCID);
         
@@ -69,6 +71,14 @@ export function JobPostingForm() {
           
           if (result.success) {
             setTransactionHash(result.txHash || null);
+            // Persist vacancy NFT details in MongoDB
+            if (postedJobId) {
+              await fetch(`/api/jobs/${postedJobId}/mint`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ vacancyNftUri: data.ipfsCID, vacancyNftTxHash: result.txHash }),
+              });
+            }
             setSuccessMessage("Job posted and registered on blockchain successfully!");
             // Reset the form
             resetForm();

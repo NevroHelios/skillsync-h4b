@@ -49,6 +49,18 @@ const SKILLSYNC_ABI = [
       { name: "duration", type: "felt" }
     ],
     outputs: []
+  },
+  {
+    name: "hire_developer",
+    type: "function",
+    inputs: [
+      { name: "developer_address", type: "felt" },
+      { name: "job_id", type: "felt" },
+      { name: "company_name", type: "felt" },
+      { name: "job_title", type: "felt" },
+      { name: "uri", type: "felt" }
+    ],
+    outputs: []
   }
 ];
 
@@ -167,6 +179,33 @@ export class StarknetService {
     } catch (error: any) {
       console.error("Error fetching job posting:", error);
       return { success: false, error: error.message || "Call failed" };
+    }
+  }
+
+  // Method to mint a hire NFT on the blockchain
+  async hireDeveloper(
+    developerAddress: string,
+    jobId: string,
+    companyName: string,
+    jobTitle: string,
+    uri: string
+  ): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    try {
+      if (!this.contract) {
+        this.initContract();
+        if (!this.contract) return { success: false, error: "Contract not initialized" };
+      }
+      const response = await this.contract.invoke("hire_developer", [
+        developerAddress,
+        jobId,
+        companyName,
+        jobTitle,
+        uri
+      ]);
+      return { success: true, txHash: response.transaction_hash };
+    } catch (error: any) {
+      console.error("Error minting hire NFT:", error);
+      return { success: false, error: error.message || "Transaction failed" };
     }
   }
 }

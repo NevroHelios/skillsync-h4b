@@ -21,6 +21,9 @@ export interface IJob extends Document {
   status: 'Open' | 'Closed' | 'Draft';
   createdAt: Date;
   updatedAt: Date;
+  // Vacancy NFT metadata
+  vacancyNftUri?: string; // NFT minted on vacancy posting
+  vacancyNftTxHash?: string;
   // --- New StarkNet Fields ---
   starknetTokenId?: string; // Store as string, as u64 can exceed JS Number limits
   starknetTransactionHash?: string; // Transaction hash for minting
@@ -95,6 +98,16 @@ const JobSchema: Schema<IJob> = new Schema(
       enum: ['Open', 'Closed', 'Draft'],
       default: 'Open',
       required: true,
+    },
+    // Vacancy NFT metadata
+    vacancyNftUri: { type: String, trim: true, default: null },
+    vacancyNftTxHash: { type: String, trim: true, default: null },
+    // StarkNet fields initially empty
+    starknetTokenId: {
+      type: String,
+    },
+    starknetTransactionHash: {
+      type: String,
     },
   },
   {

@@ -7,7 +7,6 @@ import { toast } from 'react-toastify';
 import { SessionUser } from "@/app/api/auth/[...nextauth]/route"; // Adjust path if needed
 import { JobPostClientData, PREDEFINED_TECH_TAGS, EMPLOYMENT_TYPES, EXPERIENCE_LEVELS, IJob } from '@/models/Job'; // Adjust path if needed
 import { IHRProfile } from '@/models/HRProfile'; // Adjust path if needed
-// import Link from 'next/link'; // Keep if you plan to add links
 import { useAccount, useConnect, useDisconnect } from "@starknet-react/core"; // Import useConnectors
 import { Contract, shortString, AccountInterface } from "starknet"; // IMPORTANT: Import AccountInterface
 
@@ -17,6 +16,8 @@ import {
   argent,
   braavos,
 } from "@starknet-react/core";
+
+import { useStarknet } from "@/components/StarknetProvider"; // Import useStarknet
 
 // --- Reusable Input Components (Keep as they are) ---
 interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -162,6 +163,7 @@ export default function PostJobPage() {
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintTxHash, setMintTxHash] = useState<string | null>(null);
 
+  const { starknetService } = useStarknet(); // Get StarknetService
 
   // --- Authentication & Authorization ---
   useEffect(() => {
@@ -368,18 +370,28 @@ export default function PostJobPage() {
       setMintingState('success');
       toast.success("NFT mint transaction sent successfully! It may take a few moments to confirm on-chain.");
 
-      // OPTIONAL: Update job in DB with Tx Hash (e.g., via another API call)
-      // try {
-      //    await fetch(`/api/jobs/${job._id}/update-tx`, {
-      //      method: 'POST',
-      //      headers: { 'Content-Type': 'application/json' },
-      //      body: JSON.stringify({ starknetTxHash: txResponse.transaction_hash }),
-      //    });
-      //   setLastPostedJob(prev => prev ? { ...prev, starknetTxHash: txResponse.transaction_hash } : null); // Update local state too
-      // } catch (updateError) {
-      //   console.error("Failed to update job with tx hash:", updateError);
-      //   toast.warn("Job posted and NFT mint sent, but failed to save transaction hash to DB.");
-      // }
+      // --- Save Tx Hash to Backend --- 
+      try {
+        const updateResponse = await fetch(`/api/jobs/${job._id}/mint`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ starknetTransactionHash: txResponse.transaction_hash }),
+        });
+
+        if (!updateResponse.ok) {
+          const errorData = await updateResponse.json().catch(() => ({})); // Catch potential JSON parse error
+          console.error("Failed to update job with tx hash:", updateResponse.status, errorData);
+          toast.warn(`Job posted and NFT mint sent, but failed to save transaction hash to DB: ${errorData.error || updateResponse.statusText}`);
+        } else {
+          console.log("Successfully saved StarkNet transaction hash to job document.");
+          // Optionally update local state if needed, though lastPostedJob might not be the right place
+          // setLastPostedJob(prev => prev ? { ...prev, starknetTransactionHash: txResponse.transaction_hash } : null);
+        }
+      } catch (updateError) {
+        console.error("Error calling API to update job with tx hash:", updateError);
+        toast.warn("Job posted and NFT mint sent, but encountered an error saving transaction hash to DB.");
+      }
+      // --- End Save Tx Hash --- 
 
     } catch (error) {
       console.error("StarkNet NFT Minting Error:", error);

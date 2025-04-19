@@ -10,6 +10,7 @@ import { FaSpinner } from "react-icons/fa";
 import { Certificate, Experience, Project, CPProfile, Skill } from "../../components/profile/types";
 import CertificatePreviewModal from "../../components/profile/CertificatePreviewModal";
 import ProjectChatbot from "@/components/ProjectChatbot";
+import DeveloperWalletConnect from "@/components/DeveloperWalletConnect";
 
 // Import Section Components
 import ProfileHeader from "@/components/profile/sections/ProfileHeader";
@@ -632,6 +633,7 @@ export default function Profile() {
             refreshingGfg={refreshingGfg}
           />
           <div className="w-full flex flex-col items-center lg:items-start gap-10">
+            <DeveloperWalletConnect />
             <ProfileHeader
               photo={photo}
               name={name}

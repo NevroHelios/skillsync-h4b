@@ -30,8 +30,18 @@ export function DevProfileForm() {
   const [gfgVerified, setGfgVerified] = useState(false);
 
   // Handle wallet connect from ConnectWallet component
-  const handleWalletConnect = (address: string) => {
+  const handleWalletConnect = async (address: string) => {
     setWalletAddress(address);
+    // Persist wallet address to backend
+    try {
+      await fetch('/api/profile/wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      });
+    } catch (err) {
+      console.error('Failed to save wallet address:', err);
+    }
   };
 
   // Add a skill to the skills array
@@ -108,7 +118,8 @@ export function DevProfileForm() {
       
       // Submit profile data to backend
       const profileData = {
-        wallet: walletAddress,
+        starknetAddress: walletAddress, // Use consistent field name
+        wallet: walletAddress, // Keep for backward compatibility
         github,
         leetcode,
         gfg,
