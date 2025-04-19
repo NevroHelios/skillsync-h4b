@@ -1,57 +1,211 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactFlow, { 
+  Background, 
+  Controls, 
+  MiniMap,
+  addEdge, 
+  useNodesState, 
+  useEdgesState, 
+  MarkerType,
+  Handle,
+  Position,
+  Panel
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 
 interface Project {
   name: string;
   description?: string;
 }
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
+// Sample predefined queries - can be updated
+const PREDEFINED_QUERIES = [
+  "What are the main features?",
+  "What technologies are used?",
+  "What's the project status?",
+  "Any known issues?",
+  "When was the last update?"
+];
 
-// Simple SVG Spinner component
-const LoadingSpinner = () => (
-  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  </svg>
+// Custom node types
+const ProjectNode = ({ data }) => (
+  <div className="px-4 py-2 rounded-lg shadow bg-indigo-700 text-white min-w-48">
+    <Handle type="target" position={Position.Top} />
+    <div className="font-bold">{data.name}</div>
+    {data.description && (
+      <div className="text-xs mt-1 text-indigo-200">{data.description.substring(0, 60)}...</div>
+    )}
+    <Handle type="source" position={Position.Bottom} />
+  </div>
 );
 
+const QueryNode = ({ data }) => (
+  <div className="px-4 py-2 rounded-lg shadow bg-gray-700 text-white min-w-40">
+    <Handle type="target" position={Position.Top} />
+    <div className="font-semibold">Query</div>
+    <div className="text-sm mt-1">{data.text}</div>
+    <Handle type="source" position={Position.Bottom} />
+  </div>
+);
+
+const ResponseNode = ({ data }) => (
+  <div className="px-4 py-3 rounded-lg shadow bg-gray-800 text-gray-200 max-w-md">
+    <Handle type="target" position={Position.Top} />
+    <div className="font-semibold text-indigo-300 mb-1">Response</div>
+    <div className="text-sm whitespace-pre-wrap">
+      {data.text || (data.loading ? "Thinking..." : "")}
+    </div>
+  </div>
+);
+
+// Node types definition
+const nodeTypes = {
+  project: ProjectNode,
+  query: QueryNode,
+  response: ResponseNode
+};
+
 export default function ProjectChatbot({ projects }: { projects: Project[] }) {
-  const [selectedName, setSelectedName] = useState(projects[0]?.name || '');
-  const [question, setQuestion] = useState('');
-  const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const chatContainerRef = useRef<HTMLDivElement>(null); // Ref for scrolling
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [queryText, setQueryText] = useState('');
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const nodeId = useRef(1);
+  
+  // For right panel controls
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  // Effect to scroll to bottom when chatLog changes
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+  const onConnect = useCallback((params) => {
+    // Only add edge if it's connecting from query to project
+    if (params.source.startsWith('query-') && params.target.startsWith('project-')) {
+      setEdges((eds) => addEdge({
+        ...params,
+        animated: true,
+        style: { stroke: '#6366f1' },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: '#6366f1',
+        },
+      }, eds));
+      
+      // Get project from the target node
+      const projectId = params.target;
+      const projectName = projectId.replace('project-', '');
+      const project = projects.find(p => p.name === projectName);
+      
+      // Get query from source node
+      const queryId = params.source;
+      const queryNode = nodes.find(n => n.id === queryId);
+      const question = queryNode?.data?.text || '';
+      
+      if (project && question) {
+        handleAsk(project, question, queryId);
+      }
     }
-  }, [chatLog]);
+  }, [nodes, projects, setEdges]);
 
-  const handleAsk = async () => {
-    const project = projects.find(p => p.name === selectedName);
-    if (!project || !question.trim() || loading) return;
+  const handleAddProject = () => {
+    if (!selectedProject) return;
+    
+    // Check if this project is already on the canvas
+    const existingProject = nodes.find(node => 
+      node.type === 'project' && node.data.name === selectedProject.name
+    );
+    
+    if (existingProject) {
+      // Maybe flash the node or alert the user
+      return;
+    }
+    
+    const id = `project-${selectedProject.name}`;
+    const projectNode = {
+      id,
+      type: 'project',
+      data: { 
+        name: selectedProject.name,
+        description: selectedProject.description
+      },
+      position: { 
+        x: Math.random() * 300 + 100, 
+        y: Math.random() * 100 + 100 
+      }
+    };
+    
+    setNodes(nds => [...nds, projectNode]);
+    setSelectedProject(null); // Reset selection
+  };
 
-    const userMessage: ChatMessage = { role: 'user', content: question };
-    setChatLog(prev => [...prev, userMessage]);
-    setQuestion(''); // Clear input immediately
-    setLoading(true);
+  const handleAddCustomQuery = () => {
+    if (!queryText.trim()) return;
+    
+    const id = `query-${nodeId.current++}`;
+    const newNode = {
+      id,
+      type: 'query',
+      data: { text: queryText },
+      position: { 
+        x: Math.random() * 300 + 100, 
+        y: Math.random() * 100 + 300 
+      }
+    };
+    
+    setNodes(nds => [...nds, newNode]);
+    setQueryText('');
+  };
+  
+  const handleAddPredefinedQuery = (queryText) => {
+    const id = `query-${nodeId.current++}`;
+    const newNode = {
+      id,
+      type: 'query',
+      data: { text: queryText },
+      position: { 
+        x: Math.random() * 300 + 100, 
+        y: Math.random() * 100 + 300 
+      }
+    };
+    
+    setNodes(nds => [...nds, newNode]);
+  };
 
-    // Add a placeholder for the assistant's response
-    setChatLog(prev => [...prev, { role: 'assistant', content: '' }]);
-
+  const handleAsk = async (project, question, queryNodeId) => {
+    // Create response node
+    const responseId = `response-${nodeId.current++}`;
+    const responseNode = {
+      id: responseId,
+      type: 'response',
+      data: { text: '', loading: true },
+      position: { 
+        x: Math.random() * 300 + 200, 
+        y: Math.random() * 100 + 500 
+      }
+    };
+    
+    setNodes(nds => [...nds, responseNode]);
+    
+    // Connect query to response
+    const responseEdge = {
+      id: `edge-${queryNodeId}-${responseId}`,
+      source: queryNodeId,
+      target: responseId,
+      animated: true,
+      style: { stroke: '#8b5cf6' },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#8b5cf6',
+      },
+    };
+    
+    setEdges(eds => [...eds, responseEdge]);
+    
     try {
       const res = await fetch('/api/project-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           project: { name: project.name, description: project.description },
-          question: userMessage.content // Use the captured question
+          question: question
         })
       });
 
@@ -71,119 +225,150 @@ export default function ProjectChatbot({ projects }: { projects: Project[] }) {
         if (done) break;
         assistantMsg += decoder.decode(value, { stream: true });
 
-        // Update the last message (which is the assistant's placeholder)
-        setChatLog(prev => {
-          const updatedLog = [...prev];
-          if (updatedLog.length > 0 && updatedLog[updatedLog.length - 1].role === 'assistant') {
-            updatedLog[updatedLog.length - 1].content = assistantMsg;
-          }
-          return updatedLog;
-        });
+        // Update the response node with streaming content
+        setNodes(nds => 
+          nds.map(node => 
+            node.id === responseId
+              ? { ...node, data: { ...node.data, text: assistantMsg, loading: false } }
+              : node
+          )
+        );
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Chatbot error:", err);
-      // Update the last message to show the error
-      setChatLog(prev => {
-         const updatedLog = [...prev];
-         if (updatedLog.length > 0 && updatedLog[updatedLog.length - 1].role === 'assistant') {
-           updatedLog[updatedLog.length - 1].content = `Error: ${err.message || 'Failed to get response.'}`;
-         } else {
-           // If something went wrong before the placeholder was added
-           updatedLog.push({ role: 'assistant', content: `Error: ${err.message || 'Failed to get response.'}` });
-         }
-         return updatedLog;
-      });
-    } finally {
-      setLoading(false);
-      // Keep focus on input after sending/error
-      document.getElementById('chat-input')?.focus();
-    }
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault(); // Prevent default form submission or newline
-      handleAsk();
+      // Update response node with error message
+      setNodes(nds => 
+        nds.map(node => 
+          node.id === responseId
+            ? { ...node, data: { ...node.data, text: `Error: ${err.message || 'Failed to get response.'}`, loading: false } }
+            : node
+        )
+      );
     }
   };
 
   return (
-    <div className="mt-8 bg-gray-800 rounded-lg shadow-xl p-4 flex flex-col max-w-2xl mx-auto" style={{ height: '600px' }}>
+    <div className="mt-8 bg-gray-800 rounded-lg shadow-xl p-4 flex flex-col max-w-6xl mx-auto" style={{ height: '700px' }}>
       <h3 className="text-xl font-semibold text-indigo-300 mb-4 text-center border-b border-gray-700 pb-2">
-        Project Chatbot
+        Interactive Project Flow
       </h3>
-
-      {/* Project Selector */}
-      <div className="mb-4 flex items-center gap-2 px-2">
-         <label htmlFor="project-select" className="text-sm font-medium text-gray-400">Project:</label>
-         <select
-           id="project-select"
-           value={selectedName}
-           onChange={e => {
-             setSelectedName(e.target.value);
-             setChatLog([]); // Clear chat when project changes
-           }}
-           className="flex-grow bg-gray-700 border border-gray-600 text-white text-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 px-3 py-1.5"
-         >
-           {projects.map(p => (<option key={p.name} value={p.name}>{p.name}</option>))}
-         </select>
-      </div>
-
-
-      {/* Chat Messages Area */}
-      <div
-        ref={chatContainerRef}
-        className="flex-grow overflow-y-auto mb-4 pr-2 space-y-4 custom-scrollbar" // Added custom-scrollbar class if you want to style it
-      >
-        {chatLog.length === 0 && (
-           <p className="text-center text-gray-500 text-sm mt-4">Ask a question about the selected project.</p>
-        )}
-        {chatLog.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg shadow ${
-                msg.role === 'user'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-700 text-gray-200'
-              }`}
-            >
-              {/* Basic Markdown Handling (Bold and Code) - Can be expanded */}
-               <pre className="whitespace-pre-wrap font-sans text-sm break-words">
-                 {msg.content || (msg.role === 'assistant' && loading && i === chatLog.length - 1 ? '...' : '')}
-               </pre>
-            </div>
-          </div>
-        ))}
-         {/* Displaying subtle loading dots on the assistant placeholder */}
-         {loading && chatLog[chatLog.length - 1]?.role === 'assistant' && !chatLog[chatLog.length - 1]?.content && (
-            <div className="flex justify-start">
-              <div className="px-4 py-2 rounded-lg shadow bg-gray-700 text-gray-400">
-                <span className="animate-pulse">...</span>
+      
+      {/* Main ReactFlow Canvas */}
+      <div className="flex-grow rounded-md overflow-hidden border border-gray-700">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          onInit={setReactFlowInstance}
+          fitView
+        >
+          <Background color="#4b5563" gap={16} />
+          <Controls position="bottom-left" />
+          <MiniMap
+            nodeStrokeColor={(n) => {
+              if (n.type === 'project') return '#6366f1';
+              if (n.type === 'query') return '#4b5563';
+              return '#8b5cf6';
+            }}
+            nodeColor={(n) => {
+              if (n.type === 'project') return '#4338ca';
+              if (n.type === 'query') return '#374151';
+              return '#5b21b6';
+            }}
+            position="bottom-right"
+          />
+          
+          {/* Right Panel Controls */}
+          <Panel position="right" className="bg-gray-900 p-4 rounded-l-lg border-l border-t border-b border-gray-700 max-w-xs w-64">
+            <div className="space-y-6">
+              {/* Project Selection */}
+              <div>
+                <h4 className="text-indigo-300 font-semibold mb-2 text-sm">Add Project</h4>
+                <div className="flex flex-col gap-2">
+                  <select
+                    value={selectedProject?.name || ''}
+                    onChange={(e) => {
+                      const project = projects.find(p => p.name === e.target.value);
+                      setSelectedProject(project || null);
+                    }}
+                    className="bg-gray-700 border border-gray-600 text-white text-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2"
+                  >
+                    <option value="">Select a project...</option>
+                    {projects.map(project => (
+                      <option key={project.name} value={project.name}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleAddProject}
+                    disabled={!selectedProject}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  >
+                    Add to Canvas
+                  </button>
+                </div>
+              </div>
+              
+              {/* Custom Query Creation */}
+              <div>
+                <h4 className="text-indigo-300 font-semibold mb-2 text-sm">Custom Query</h4>
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="text"
+                    value={queryText}
+                    onChange={e => setQueryText(e.target.value)}
+                    placeholder="Type your question..."
+                    className="bg-gray-700 border border-gray-600 text-white text-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        handleAddCustomQuery();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleAddCustomQuery}
+                    disabled={!queryText.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  >
+                    Add Custom Query
+                  </button>
+                </div>
+              </div>
+              
+              {/* Predefined Queries */}
+              <div>
+                <h4 className="text-indigo-300 font-semibold mb-2 text-sm">Predefined Queries</h4>
+                <div className="flex flex-col gap-1 max-h-64 overflow-y-auto pr-1">
+                  {PREDEFINED_QUERIES.map((query, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleAddPredefinedQuery(query)}
+                      className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded-md text-left transition-colors duration-200 truncate"
+                      title={query}
+                    >
+                      {query}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Instructions */}
+              <div className="text-gray-400 text-xs">
+                <p className="font-medium mb-1">How to use:</p>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>Add a project to the canvas</li>
+                  <li>Add a query (custom or predefined)</li>
+                  <li>Connect the query to a project</li>
+                  <li>See the response appear!</li>
+                </ol>
               </div>
             </div>
-          )}
-      </div>
-
-      {/* Input Area */}
-      <div className="flex items-center gap-2 border-t border-gray-700 pt-3">
-        <input
-          id="chat-input"
-          type="text"
-          value={question}
-          onChange={e => setQuestion(e.target.value)}
-          onKeyDown={handleKeyDown} // Handle Enter key press
-          placeholder="Ask a question..."
-          disabled={loading}
-          className="flex-1 bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-60"
-        />
-        <button
-          onClick={handleAsk}
-          disabled={loading || !question.trim()}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors duration-200"
-          style={{ minWidth: '80px' }} // Ensure button width doesn't jump too much
-        >
-          {loading ? <LoadingSpinner /> : 'Send'}
-        </button>
+          </Panel>
+        </ReactFlow>
       </div>
     </div>
   );
