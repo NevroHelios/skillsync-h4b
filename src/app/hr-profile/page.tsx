@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Link from 'next/link'; // For Job Posting link
 import { SessionUser } from "@/app/api/auth/[...nextauth]/route"; // Adjust path if needed
-import { HRProfileClientData, IHRProfile } from '@/models/HRprofile'; // Import types
+import { HRProfileClientData, IHRProfile } from '@/models/HRProfile'; // Import types
 
 // Define the shape of profile data used in the component state
 // It can be the full MongoDB doc (IHRProfile) or null initially

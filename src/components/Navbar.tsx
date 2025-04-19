@@ -32,6 +32,7 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           <Link href="#about" className="hover:text-indigo-400 font-medium transition">About</Link>
           <Link href="#products" className="hover:text-indigo-400 font-medium transition">Products</Link>
+          <Link href="/jobs" className="hover:text-indigo-400 font-medium transition">Jobs</Link>
           {session?.user ? (
             <>
               <Link href="/profile" className="flex items-center gap-2 hover:text-indigo-400 font-medium transition">
