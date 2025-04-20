@@ -684,7 +684,30 @@ export default function Profile() {
               setCommentInputs={setCommentInputs}
             />
             {projects.length > 0 && (
-              <ProjectChatbot projects={projects.map((p) => ({ name: p.name, description: p.description }))} />
+              <ProjectChatbot 
+                projects={projects.map((p) => {
+                  // Find matching GitHub repo
+                  const githubRepo = githubRepos?.find(
+                    repo => repo.html_url === p.link || repo.name === p.name
+                  );
+                  
+                  return {
+                    name: p.name,
+                    description: p.description,
+                    link: p.link,
+                    skills: p.skills,
+                    experience: p.experience,
+                    // Add GitHub specific details if available
+                    repoUrl: githubRepo?.html_url,
+                    stars: githubRepo?.stargazers_count,
+                    forks: githubRepo?.forks_count,
+                    language: githubRepo?.language,
+                    topics: githubRepo?.topics,
+                    lastUpdate: githubRepo?.updated_at,
+                    creation: githubRepo?.created_at,
+                  };
+                })} 
+              />
             )}
             <SkillsSection skills={skills} />
             <CertificatesSection

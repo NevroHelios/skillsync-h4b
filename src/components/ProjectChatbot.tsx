@@ -21,6 +21,16 @@ import { FiBox, FiHelpCircle, FiMessageSquare, FiPlus, FiSend, FiTrash2, FiInfo 
 interface Project {
   name: string;
   description?: string;
+  link?: string;
+  skills?: string[];
+  experience?: string;
+  repoUrl?: string;
+  stars?: number;
+  forks?: number;
+  language?: string;
+  topics?: string[];
+  lastUpdate?: string;
+  creation?: string;
 }
 const PREDEFINED_QUERIES = [
   'What are the main features?',
@@ -55,11 +65,11 @@ const ProjectNode = ({ data }) => (
   <NodeWrapper className="bg-gradient-to-br from-indigo-800 to-indigo-700 text-white min-w-[220px]">
     <Handle type="target" position={Position.Top} className="!bg-indigo-400 !w-3 !h-3" />
     <NodeHeader icon={FiBox} title={data.name} className="text-indigo-100" />
-    {data.description && (
-      <NodeBody className="text-xs text-indigo-200">
-        {data.description.substring(0, 80)}{data.description.length > 80 ? '...' : ''}
-      </NodeBody>
-    )}
+    <NodeBody className="text-xs text-indigo-200">
+      {data.description && <div className="mb-1">{data.description.substring(0, 80)}...</div>}
+      {data.language && <div className="text-indigo-300">Language: {data.language}</div>}
+      {data.stars !== undefined && <div className="text-indigo-300">⭐ {data.stars}</div>}
+    </NodeBody>
     <Handle type="source" position={Position.Bottom} className="!bg-indigo-400 !w-3 !h-3" />
   </NodeWrapper>
 );
@@ -305,9 +315,36 @@ function ProjectChatbotContent({ projects }: { projects: Project[] }) {
     }, 200);
 
     try {
-      const res = await fetch('/api/project-chat', { /* ... */ });
-      if (!res.ok) throw new Error(`Chat API error: ${res.status} ${res.statusText}`);
-      if (!res.body) throw new Error('Response body is null');
+      const res = await fetch('/api/project-chat', {
+        method: 'POST', // This confirms it's a POST request
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project: project, // Pass the full project context
+          question: question
+        })
+      });
+
+      // Check response status *before* trying to read the body
+      if (!res.ok) {
+        console.log(res);
+        console.log(project, question);
+        console.log("aaaaaaaaaaaaaaaaaaaaaaaaa")
+        // Try to get error details from the response body if possible
+        let errorDetails = `Chat API error: ${res.status} ${res.statusText}`;
+        try {
+          const errorJson = await res.json();
+          errorDetails = errorJson.error || errorJson.details || errorDetails;
+        } catch (e) {
+          // Ignore if response body is not JSON or empty
+        }
+        throw new Error(errorDetails);
+      }
+
+      if (!res.body) {
+        throw new Error('Response body is null');
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();

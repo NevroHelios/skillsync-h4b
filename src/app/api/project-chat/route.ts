@@ -9,8 +9,16 @@ const groq = new Groq({
 interface ProjectContext {
     name: string;
     description: string | null;
-    // language?: string | null; // Could add more context if available
-    // readmeContent?: string | null; // Future: Add README content here
+    link?: string;
+    skills?: string[];
+    experience?: string;
+    repoUrl?: string;
+    stars?: number;
+    forks?: number;
+    language?: string;
+    topics?: string[];
+    lastUpdate?: string;
+    creation?: string;
 }
 
 interface ChatRequestPayload {
@@ -26,18 +34,30 @@ function constructChatPrompt(project: ProjectContext, question: string): string 
 Project Details:
 Name: ${project.name}
 Description: ${project.description || 'No description provided.'}
+${project.language ? `Primary Language: ${project.language}` : ''}
+${project.skills?.length ? `Technologies/Skills: ${project.skills.join(', ')}` : ''}
+${project.topics?.length ? `Topics: ${project.topics.join(', ')}` : ''}
+${project.stars !== undefined ? `GitHub Stars: ${project.stars}` : ''}
+${project.forks !== undefined ? `Forks: ${project.forks}` : ''}
+${project.repoUrl ? `Repository URL: ${project.repoUrl}` : ''}
+${project.creation ? `Created: ${new Date(project.creation).toLocaleDateString()}` : ''}
+${project.lastUpdate ? `Last Updated: ${new Date(project.lastUpdate).toLocaleDateString()}` : ''}
+${project.experience ? `Developer's Experience Note: ${project.experience}` : ''}
 
 HR User's Question:
 "${question}"
 
-Based *only* on the provided project name and description, please answer the HR user's question concisely. If the information isn't available in the provided details, state that clearly. Do not invent details or assume information from external sources.\`;
-    
-        `;
+Based on the provided project details, please answer the HR user's question concisely and professionally. Focus on the available information and highlight relevant technical aspects. If certain information isn't available in the provided details, state that clearly.`;
+
     return prompt;
 }
 
-
 export async function POST(req: NextRequest) {
+  // Explicit check (though Next.js routing handles this by export name)
+  if (req.method !== 'POST') {
+    return NextResponse.json({ error: `Method ${req.method} Not Allowed` }, { status: 405 });
+  }
+
   try {
     // TODO: Add authentication check here to ensure only authorized users (e.g., HR) can use this.
     // const session = await getServerSession(authOptions);
@@ -58,13 +78,12 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "system",
-          content: "You are an expert code reviewer and technical assistant helping an HR user understand a specific GitHub project based *only* on the provided name and description.",
+          content: "You are a technical assistant helping an HR user evaluate a developer's project based on the provided details. Answer concisely and professionally, focusing only on the given information.",
         },
         {
           role: "user",
           content: prompt,
         },
-        // TODO: Optionally include chatHistory here if implementing multi-turn conversation
       ],
       model: "gemma2-9b-it", // Or your preferred model like llama3-70b-8192
       temperature: 0.3, // Lower temperature for more factual, less creative answers
@@ -78,43 +97,46 @@ export async function POST(req: NextRequest) {
         try {
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
-            controller.enqueue(new TextEncoder().encode(content));
+            if (content) { // Only enqueue if there's content
+              controller.enqueue(new TextEncoder().encode(content));
+            }
           }
         } catch (error) {
           console.error("Error during Groq stream processing:", error);
-          // Try to send an error message back through the stream if possible
           try {
-             controller.enqueue(new TextEncoder().encode(`\\n\\n[Error processing stream: \${error instanceof Error ? error.message : 'Unknown error'}]`));
-          } catch (e) {
-             // Ignore if controller is already closed
-          }
+             const errorMessage = `\n\n[Error processing response: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+             controller.enqueue(new TextEncoder().encode(errorMessage));
+          } catch (e) { /* Ignore if controller is closed */ }
           controller.error(error); // Signal stream error
         } finally {
           try {
             controller.close();
-          } catch (e) {
-             // Ignore if already closed
-          }
+          } catch (e) { /* Ignore if already closed */ }
         }
       },
        cancel(reason) {
          console.log('Stream cancelled:', reason);
-         // Handle cancellation if needed
        }
     });
 
+    // Return the stream with specific headers
     return new NextResponse(readableStream, {
+      status: 200, // Explicitly set status to 200 OK
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache', // Prevent caching issues
+        'Connection': 'keep-alive', // Suggest keeping connection open for stream
         'Transfer-Encoding': 'chunked',
-        'X-Content-Type-Options': 'nosniff', // Prevent browser from interpreting content type
+        'X-Content-Type-Options': 'nosniff',
+        // Allow POST method explicitly (might help with some proxy/server configs)
+        'Allow': 'POST',
       },
     });
 
   } catch (error) {
-    console.error("Error in project chat API:", error);
+    console.error("Error in project chat API (POST handler):", error);
     const message = error instanceof Error ? error.message : "An unknown error occurred";
-    // Return a JSON error response if stream hasn't started
-    return NextResponse.json({ error: "Failed to get chat response from AI model.", details: message }, { status: 500 });
+    // Return JSON error for issues before streaming starts
+    return NextResponse.json({ error: "Failed to process chat request.", details: message }, { status: 500 });
   }
 }
