@@ -59,7 +59,7 @@ const EditDetailsForm: React.FC<EditDetailsFormProps> = ({
       {/* Edit Button (floating, bottom left on mobile, top left on desktop) */}
       {!open && (
         <button
-          className="fixed z-50 left-4 bottom-6 lg:top-6 lg:bottom-auto p-3 rounded-full bg-blue-700/90 hover:bg-blue-800 text-white shadow-lg border border-blue-900/40 transition-all duration-200"
+          className="fixed z-50 right-4 bottom-6 p-3 rounded-full bg-blue-700/90 hover:bg-blue-800 text-white shadow-lg border border-blue-900/40 transition-all duration-200"
           onClick={() => setOpen(true)}
           aria-label="Edit Details"
         >
