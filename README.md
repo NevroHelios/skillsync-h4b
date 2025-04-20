@@ -55,3 +55,13 @@ AI-powered scoring and project analysis ensure the right fit for every role.
 - Transparency:
 
 All achievements and work history are publicly verifiable.
+
+# Links
+### APIs
+```
+https://github.com/NevroHelios/skillsync-api-h4b
+```
+### Contracts
+```
+https://github.com/NevroHelios/skillsync-contracts-h4b
+```
