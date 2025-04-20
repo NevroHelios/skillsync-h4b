@@ -28,7 +28,11 @@ interface ChatRequestPayload {
 }
 
 // Function to construct the prompt for the LLM
-function constructChatPrompt(project: ProjectContext, question: string): string {
+function constructChatPrompt(
+    project: ProjectContext,
+    question: string,
+    repoSummary?: { summary?: any; tree?: any; readme?: any }
+): string {
     console.log("Constructing prompt with project details:", project, "and question:", question);
 
     let prompt = `You are an expert code reviewer and technical assistant. You are helping an HR user understand a specific project from a developer's GitHub profile.
@@ -46,6 +50,16 @@ ${project.creation ? `Created: ${new Date(project.creation).toLocaleDateString()
 ${project.lastUpdate ? `Last Updated: ${new Date(project.lastUpdate).toLocaleDateString()}` : ''}
 ${project.experience ? `Developer's Experience Note: ${project.experience}` : ''}
 
+`;
+
+    if (repoSummary) {
+        prompt += `\nAdditional Repository Context (from analysis service):\n`;
+        if (repoSummary.summary) prompt += `Summary: ${typeof repoSummary.summary === "string" ? repoSummary.summary : JSON.stringify(repoSummary.summary)}\n`;
+        if (repoSummary.tree) prompt += `Tree: ${typeof repoSummary.tree === "string" ? repoSummary.tree : JSON.stringify(repoSummary.tree)}\n`;
+        if (repoSummary.readme) prompt += `README: ${typeof repoSummary.readme === "string" ? repoSummary.readme : JSON.stringify(repoSummary.readme)}\n`;
+    }
+
+    prompt += `
 HR User's Question:
 "${question}"
 
@@ -74,7 +88,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body. Missing project details or question.' }, { status: 400 });
     }
 
-    const prompt = constructChatPrompt(body.project, body.question);
+    console.log("Received project details:", body.project, "and question:", body.question);
+    console.log(body.project.link,"||", body.project.repoUrl)
+
+    let repoSummary: { summary?: any; tree?: any; readme?: any } | undefined = undefined;
+    // Fix: check for link, not just repoUrl
+    if (body.project.link) {
+      try {
+        const summaryRes = await fetch(
+          `http://127.0.0.1:8000/repo_summary/?repo_url=${body.project.link}`,
+          { method: "GET" }
+        );
+        if (summaryRes.ok) {
+          repoSummary = await summaryRes.json();
+        } else {
+          console.error("Failed to fetch repo summary: Response not OK", summaryRes.statusText);
+          console.error(body.project, body.project.link)
+        }
+      } catch (err) {
+        console.error("Failed to fetch repo summary:", err);
+      }
+    }
+
+    const prompt = constructChatPrompt(body.project, body.question, repoSummary);
     console.log("Constructed prompt for Groq:", prompt);
 
     const stream = await groq.chat.completions.create({
