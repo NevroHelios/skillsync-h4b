@@ -44,19 +44,19 @@ const Productivity = (props: Props) => {
             {session?.user?.email ? (
                 <ProfilePreview email={session.user.email} />
             ) : (
-                <div className="text-center text-gray-500 bg-gray-800 rounded-xl p-6 shadow-lg w-full max-w-md">
+                <div className="text-center text-gray-500 bg-gray-800 rounded-xl p-6 shadow-lg w-full ">
                     Sign in to see your profile preview.
                 </div>
             )}
         </div>
 
-        <CodeSpace/>
+        {/* <CodeSpace/> */}
         <div className='relative z-[1] '>
-            <CopilotFeature/>
+            {/* <CopilotFeature/> */}
         </div>
         <div className='flex justify-between items-center'>
             <div className='flex justify-between md:space-x-10 max-md:flex-col'>
-                <HoverCard backgroundColor='#7ee787' direction='flex-col' left='0'>
+                {/* <HoverCard backgroundColor='#7ee787' direction='flex-col' left='0'>
                     <div className='md:flex flex-col flex-1 p-8 sm:p-10 lg:py-16 lg:pl-16 lg:pr-32 '>
                         <p className=" text-xl md:text-2xl mb-6 font-medium text-[#7d8590]"><span className='text-white font-semibold'>GitHub Actions</span>  automates your build, test, and deployment workflow with simple and secure CI/CD.</p>
                         <div>
@@ -85,7 +85,7 @@ const Productivity = (props: Props) => {
                     <div className='overflow-hidden rounded-s-lg'>
                     <img className="w-full  h-auto" width="1208" height="764" loading="lazy" decoding="async" alt="" aria-hidden="true" src="https://github.githubassets.com/images/modules/site/home-campaign/illu-mobile.png" />
                     </div>
-                </HoverCard>
+                </HoverCard> */}
             </div>
         </div>
         <motion.div initial={{height:0}} whileInView={{height:'160px'}} transition={{delay:0.3}} viewport={{once:false}} className=" md:ml-10 ml-3 h-[160px] mt-[-20px] w-[3px] rounded-md bg-gradient-to-b from-transparent via-[#ea6045] to-[#ffa28b]" ></motion.div>

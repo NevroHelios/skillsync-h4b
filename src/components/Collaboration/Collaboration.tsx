@@ -1,9 +1,14 @@
 'use client'
-import React, {useState} from 'react'
+import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import CodeSpace from '../Productivity/CodeSpace'
 import Discount from './Discount'
 import HoverCard from '../Productivity/HoverCard'
-import {motion} from "framer-motion"
+import { motion } from "framer-motion"
+import { FiBriefcase, FiMapPin } from 'react-icons/fi'
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 type Props = {}
 
@@ -47,8 +52,8 @@ const Collaboration = (props: Props) => {
                 </h3>
             </motion.div>
         </div>
-        <img className="w-full h-auto d-block rounded-lg border-[1px] border-[#30363d]  " width="2500" height="1500" loading="lazy" decoding="async" alt="Illustration of project table view with cards grouped by 'Feature planning' phase." src="https://github.githubassets.com/images/modules/site/issues/illo/issues-plan.png"></img>
-        <Discount/>
+        <JobProductSection />
+
         <div className='flex justify-between items-center'>
             <div className='flex justify-between md:space-x-10 max-md:flex-col'>
                 <HoverCard backgroundColor='#ffa28b' direction='flex-col' left='0'>
@@ -167,7 +172,7 @@ const Collaboration = (props: Props) => {
                       </a>
                   </motion.div>
                   <motion.div variants={item} transition={{type:'tween'}} className='w-1/3 '>
-                      <a href="" target='_blank' className='rounded-md  bg-[#161b22] border-[0.5px] border-[#30363d] flex flex-col items-center m-2 p-6'>
+                      <a href="" target='_blank' className='rounded-md bg-[#161b22] border-[0.5px] border-[#30363d] flex flex-col items-center m-2 p-6'>
                         <img alt="Homebrew avatar" width="96" height="96" className="rounded-md" loading="lazy" decoding="async" src="https://github.githubassets.com/images/modules/site/home-campaign/sponsors/kazupon.jpeg" />
                         <div className="text-[#7d8590] my-2">kazuya kawaguchi</div>
                         <button type="button" className=' bg-[#21262d] rounded-md '>
@@ -231,3 +236,90 @@ const Collaboration = (props: Props) => {
 }
 
 export default Collaboration
+
+function JobProductSection() {
+  const [jobs, setJobs] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/jobs/public")
+      .then(res => res.json())
+      .then(data => setJobs(Array.isArray(data) ? data.slice(0, 3) : [])) // Only 3 cards
+      .catch(() => setJobs([]));
+  }, []);
+
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 3, // Show 3 cards at once
+    slidesToScroll: 1,
+    arrows: true,
+    autoplay: true,
+    autoplaySpeed: 2500,
+    pauseOnHover: true,
+    adaptiveHeight: true,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 2,
+        },
+      },
+      {
+        breakpoint: 640,
+        settings: {
+          slidesToShow: 1,
+        },
+      },
+    ],
+  };
+
+  return (
+    <div className="my-12">
+      {/* <h2 className="text-3xl font-bold text-white mb-2">Find Your <span>Dream Job</span></h2> */}
+      <h3 className="text-[28px] md:text-[40px] max-md:leading-8 max-lg:leading-10 lg:text-5xl mb-7 font-medium text-white js-build-in-item build-in-slideX-left build-in-animate" style={{transitionDelay: '300ms'}}>
+      Find Your<span className="text-[#ffa28b]">Dream Job.</span></h3>
+      <p className="text-lg text-[#7d8590] mb-6">Browse through our curated list of available positions in tech and digital industries</p>
+      {/* <h2 className="text-2xl font-semibold text-white mb-6">Job Product</h2> */}
+      <Slider {...settings}>
+        {jobs.length === 0 ? (
+          <div className="col-span-4 text-center text-gray-400 py-8">No jobs found.</div>
+        ) : (
+          jobs.map(job => (
+            <div key={job._id} className="px-2">
+              <div className="flex flex-col md:flex-row bg-gradient-to-br from-[#23272e] via-[#161b22] to-[#23272e] border border-[#30363d] rounded-2xl shadow-xl hover:border-[#ffa28b] focus:outline-none focus:ring-2 focus:ring-[#ffa28b] focus:ring-offset-2 transition min-h-[360px] overflow-hidden group relative">
+                {/* Left: Job Info */}
+                <div className="flex-1 flex flex-col p-8 sm:p-10 lg:py-14 lg:pl-14 lg:pr-8">
+                  <h2 className="text-2xl font-bold text-white truncate mb-2 drop-shadow-lg" title={job.title}>{job.title}</h2>
+                  <p className="text-[#ffa28b] mb-1 flex items-center gap-1 text-base font-medium"><FiBriefcase /> {job.company}</p>
+                  <p className="text-[#7d8590] mb-3 flex items-center gap-1 text-base"><FiMapPin /> {job.location}</p>
+                  <p className="text-base text-[#c9d1d9] mb-4 line-clamp-3 leading-relaxed">{job.description}</p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {job.techStack?.slice(0, 4).map((tech) => (
+                      <span key={tech} className="bg-[#23272e] border border-[#ffa28b] text-xs text-[#ffa28b] px-2 py-1 rounded-full font-semibold shadow-sm">{tech}</span>
+                    ))}
+                    {job.techStack?.length > 4 && (
+                      <span className="text-gray-500 text-xs py-1">+{job.techStack.length - 4} more</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400 border-t border-gray-700 pt-2 flex justify-between mt-auto">
+                    <span>{job.employmentType} {job.experienceLevel ? `• ${job.experienceLevel}` : ''}</span>
+                    <span>Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <Link href={`/jobs/${job._id}`} className="mt-6 inline-block text-base text-[#161b22] font-bold py-2 px-5 rounded bg-[#ffa28b] hover:bg-[#ffbfa3] transition w-fit shadow-lg">View Details</Link>
+                </div>
+                {/* Glow effect */}
+                <div className="absolute -inset-1 rounded-2xl pointer-events-none bg-gradient-to-br from-[#ffa28b33] via-transparent to-transparent blur-lg opacity-60 group-hover:opacity-90 transition" />
+              </div>
+            </div>
+          ))
+        )}
+      </Slider>
+      <div className="flex justify-end mt-6">
+        <Link href="/jobs/dashboard" className="px-6 py-2 rounded bg-[#ffa28b] text-[#161b22] font-semibold hover:bg-[#ffbfa3] transition">
+          Go to all Products page
+        </Link>
+      </div>
+    </div>
+  );
+}

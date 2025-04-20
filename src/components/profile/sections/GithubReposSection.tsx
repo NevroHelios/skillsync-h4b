@@ -58,7 +58,7 @@ const GithubReposSection: React.FC<GithubReposSectionProps> = ({
   return (
     <div className="w-full mt-0 section-container">
       <div
-        className="section-header flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg mb-3" // Reduced padding and margin
+        className="section-header flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg mb-3 backdrop-blur-sm" // Reduced padding and margin, Added backdrop-blur
         style={{
           background: "linear-gradient(90deg, rgba(36,37,46,0.9) 0%, rgba(44,48,66,0.8) 100%)",
           boxShadow: "0 3px 15px 0 rgba(0,0,0,0.08)" // Reduced shadow
@@ -96,7 +96,7 @@ const GithubReposSection: React.FC<GithubReposSectionProps> = ({
                 style={{ textDecoration: 'none' }}
               >
                 <div
-                  className="bg-gradient-to-br from-gray-900/75 to-gray-800/65 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-700/50 hover:border-blue-500/70 transition-all duration-200 flex flex-col justify-between h-full min-h-[220px] sm:min-h-[240px] shadow-lg hover:shadow-xl group" // Reduced min-height and padding
+                  className="bg-gradient-to-br from-gray-900/75 to-gray-800/65 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-700/50 hover:border-blue-500/70 transition-all duration-200 flex flex-col justify-between h-full min-h-[220px] sm:min-h-[240px] shadow-lg hover:shadow-xl group" // Reduced min-height and padding, Added backdrop-blur-sm
                   style={{
                     boxShadow: "0 6px 20px 0 rgba(0,0,0,0.15), 0 1px 4px 0 rgba(0,0,0,0.08)" // Adjusted shadow
                   }}

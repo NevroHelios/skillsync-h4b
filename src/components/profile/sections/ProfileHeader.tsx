@@ -163,7 +163,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Wallet Connect Button */}
       {/* Adjusted margin and centering */}
       <div className="mt-4 mb-3 w-full flex justify-center px-4">
-        <WalletConnectButton />
+        {/* <WalletConnectButton /> */}
       </div>
     </div>
   );
