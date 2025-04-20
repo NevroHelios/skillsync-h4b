@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import UserProfileCard from '@/components/UserProfileCard';
+import Link from "next/link";
 
 interface User {
   _id: string;
@@ -65,9 +66,25 @@ export default function DashboardClient({ users }: { users: User[] }) {
                   <div key={user._id} className="group relative px-2">
                     {/* Glow effect */}
                     <div className="absolute -inset-1 rounded-2xl pointer-events-none bg-gradient-to-br from-[#ffa28b33] via-transparent to-transparent blur-lg opacity-60 group-hover:opacity-90 transition z-0" />
-                    <div className="relative z-10 flex flex-col bg-gradient-to-br from-[#23272e] via-[#161b22] to-[#23272e] border border-[#30363d] rounded-2xl shadow-xl hover:border-[#ffa28b] focus:ring-2 focus:ring-[#ffa28b] focus:ring-offset-2 transition min-h-[360px] overflow-hidden p-8">
-                      <UserProfileCard user={{...user, role: user.email === 'admin@admin.com' ? 'admin' : user.email.endsWith('@hr.com') ? 'hr' : user.email.endsWith('@gmail.com') ? 'user' : user.role}} />
-                    </div>
+                    {/* Make the card clickable and link to /profile?email=... */}
+                    <Link
+                      href={`/profile?email=${encodeURIComponent(user.email)}`}
+                      className="relative z-10 block focus:outline-none"
+                      tabIndex={0}
+                    >
+                      <div className="flex flex-col bg-gradient-to-br from-[#23272e] via-[#161b22] to-[#23272e] border border-[#30363d] rounded-2xl shadow-xl hover:border-[#ffa28b] focus:ring-2 focus:ring-[#ffa28b] focus:ring-offset-2 transition min-h-[360px] overflow-hidden p-8">
+                        <UserProfileCard user={{
+                          ...user,
+                          role: user.email === 'admin@admin.com'
+                            ? 'admin'
+                            : user.email.endsWith('@hr.com')
+                              ? 'hr'
+                              : user.email.endsWith('@gmail.com')
+                                ? 'user'
+                                : user.role
+                        }} />
+                      </div>
+                    </Link>
                   </div>
                 ))}
               </div>
