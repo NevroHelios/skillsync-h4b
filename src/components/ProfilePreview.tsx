@@ -1,46 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import ProfileHeader from './profile/sections/ProfileHeader';
+import SkillsSection from './profile/sections/SkillsSection';
+import ExperienceSection from './profile/sections/ExperienceSection';
+import StatsSection from './profile/sections/StatsSection';
+import { Skill, Experience } from './profile/types';
+import { LeetCodeStats, GfgStats } from './profile/sections/StatsSection';
 
-// Define types locally or import if defined globally
 interface UserProfile {
-  _id?: string; // Changed from any to string
+  _id?: string;
   name?: string;
   email: string;
   photo?: string;
+  title?: string;
+  location?: string;
   bio?: string;
   linkedin?: string;
   github?: string;
-  leetcode?: string; // LeetCode username
-  gfg?: string; // GeeksforGeeks username
-
-  // LeetCode Stats
-  leetcodeStats?: {
-    solvedCount?: number;
-    totalProblems?: number;
-    acceptanceRate?: number;
-    ranking?: number;
-    contributionPoints?: number;
-    easySolved?: number;
-    totalEasy?: number;
-    mediumSolved?: number;
-    totalMedium?: number;
-    hardSolved?: number;
-    totalHard?: number;
-  };
-
-  // GeeksforGeeks Stats
-  gfgStats?: {
-    codingScore?: number;
-    totalProblemsSolved?: number;
-    monthlyCodingStreak?: number;
-    overallRank?: number;
-    articlesPublished?: number;
-    basicSolved?: number;
-    easySolved?: number;
-    mediumSolved?: number;
-  };
+  leetcode?: string;
+  gfg?: string;
+  skills?: Skill[];
+  experiences?: Experience[];
+  scores?: { [key: string]: any };
+  leetcodeStats?: LeetCodeStats | null;
+  gfgStats?: GfgStats | null;
 }
 
 function ProfilePreviewSkeleton() {
@@ -56,13 +40,10 @@ function ProfilePreviewSkeleton() {
 async function fetchProfile(email: string): Promise<UserProfile | null> {
   if (!email) return null;
   try {
-    // This function calls the /api/profile endpoint,
-    // which retrieves user data from MongoDB.
-    // Use relative URL for client-side fetch
     const res = await fetch(`/api/profile?email=${encodeURIComponent(email)}`);
     if (!res.ok) {
-        console.error(`Failed to fetch profile (${res.status}):`, await res.text());
-        return null;
+      console.error(`Failed to fetch profile (${res.status}):`, await res.text());
+      return null;
     }
     return await res.json();
   } catch (error) {
@@ -71,14 +52,56 @@ async function fetchProfile(email: string): Promise<UserProfile | null> {
   }
 }
 
+async function refreshLeetCodeStats(username: string): Promise<LeetCodeStats | null> {
+  if (!username) return null; // Added check for empty username
+  console.log(`Refreshing LeetCode for ${username}...`);
+  try {
+    // Make the actual API call
+    const res = await fetch(`/api/stats/leetcode?username=${encodeURIComponent(username)}`);
+    if (!res.ok) {
+      console.error(`Failed to refresh LeetCode stats (${res.status}):`, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    // Assuming the API returns data in the expected format
+    // Add validation if necessary
+    return data.stats as LeetCodeStats;
+  } catch (error) {
+    console.error("Error refreshing LeetCode stats via API:", error);
+    return null;
+  }
+}
+
+async function refreshGfgStats(username: string): Promise<GfgStats | null> {
+  if (!username) return null; // Added check for empty username
+  console.log(`Refreshing GFG for ${username}...`);
+  try {
+    // Make the actual API call
+    const res = await fetch(`/api/stats/gfg?username=${encodeURIComponent(username)}`);
+    if (!res.ok) {
+      console.error(`Failed to refresh GFG stats (${res.status}):`, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    // Assuming the API returns data in the expected format
+    // Add validation if necessary
+    return data.stats as GfgStats;
+  } catch (error) {
+    console.error("Error refreshing GFG stats via API:", error);
+    return null;
+  }
+}
+
 export default function ProfilePreview({ email }: { email: string }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshingLeetcode, setRefreshingLeetcode] = useState(false);
+  const [refreshingGfg, setRefreshingGfg] = useState(false);
 
   useEffect(() => {
     if (!email) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
     setLoading(true);
     fetchProfile(email)
@@ -87,12 +110,50 @@ export default function ProfilePreview({ email }: { email: string }) {
       })
       .catch(err => {
         console.error("Profile fetch failed in component:", err);
-        setProfile(null); // Ensure profile is null on error
+        setProfile(null);
       })
       .finally(() => {
         setLoading(false);
       });
   }, [email]);
+
+  const handleRefreshLeetcode = async () => {
+    if (!profile?.leetcode || refreshingLeetcode) return;
+    setRefreshingLeetcode(true);
+    try {
+      const updatedStats = await refreshLeetCodeStats(profile.leetcode);
+      if (updatedStats) {
+        // Update the profile state with the newly fetched stats
+        setProfile(prev => prev ? { ...prev, leetcodeStats: updatedStats } : null);
+      } else {
+        console.warn("LeetCode refresh returned null or failed");
+        // Optionally: Show a message to the user that refresh failed
+      }
+    } catch (error) {
+      console.error("Error in handleRefreshLeetcode:", error);
+    } finally {
+      setRefreshingLeetcode(false);
+    }
+  };
+
+  const handleRefreshGfg = async () => {
+    if (!profile?.gfg || refreshingGfg) return;
+    setRefreshingGfg(true);
+    try {
+      const updatedStats = await refreshGfgStats(profile.gfg);
+      if (updatedStats) {
+        // Update the profile state with the newly fetched stats
+        setProfile(prev => prev ? { ...prev, gfgStats: updatedStats } : null);
+      } else {
+        console.warn("GFG refresh returned null or failed");
+        // Optionally: Show a message to the user that refresh failed
+      }
+    } catch (error) {
+      console.error("Error in handleRefreshGfg:", error);
+    } finally {
+      setRefreshingGfg(false);
+    }
+  };
 
   if (loading) {
     return <ProfilePreviewSkeleton />;
@@ -100,73 +161,51 @@ export default function ProfilePreview({ email }: { email: string }) {
 
   if (!profile) {
     return (
-        <div className="text-center text-gray-500 bg-gray-800 rounded-xl p-6 shadow-lg w-full max-w-md">
-            Could not load profile preview for {email}.
-        </div>
+      <div className="text-center text-gray-500 bg-gray-800 rounded-xl p-6 shadow-lg w-full max-w-md">
+        Could not load profile preview for {email}.
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 bg-gray-800 rounded-xl p-6 shadow-lg w-full max-w-lg text-gray-200">
-      <Image
-        src={profile.photo || "/profile.png"} // Use a default avatar in /public
-        alt="Profile"
-        width={96}
-        height={96}
-        className="rounded-full object-cover border-2 border-indigo-700 shadow mb-2"
-        priority // Consider removing if not LCP
+    <div className="flex w-screen  flex-col items-center gap-6 sm:gap-8 bg-gray-900/50 backdrop-blur-sm rounded-2xl p-10 sm:p-6 shadow-lg  text-gray-200 border border-gray-700/50">
+        <div className="flex flex-row items-center gap-4 w-full">
+        <div className="w-1/3 flex flex-col items-center justify-center" >
+      <ProfileHeader
+        photo={profile.photo || "/profile.png"}
+        name={profile.name || profile.email}
+        title={profile.title}
+        location={profile.location}
+        bio={profile.bio || ""}
+        linkedin={profile.linkedin || ""}
+        github={profile.github || ""}
+        leetcode={profile.leetcode || ""}
+        gfg={profile.gfg || ""}
+        scores={profile.scores}
       />
-      <div className="font-bold text-xl text-indigo-200">{profile.name || profile.email}</div>
-      {profile.bio && <div className="text-gray-400 text-base mb-1 text-center">{profile.bio}</div>}
 
-      {/* Social Links */}
-      <div className="flex gap-4 mt-2 flex-wrap justify-center border-b border-gray-700 pb-4 mb-4 w-full">
-        {profile.linkedin && (
-          <a href={`https://linkedin.com/in/${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm">LinkedIn</a>
-        )}
-        {profile.github && (
-          <a href={`https://github.com/${profile.github}`} target="_blank" rel="noopener noreferrer" className="text-gray-100 hover:underline text-sm">GitHub</a>
-        )}
-        {profile.leetcode && (
-          <a href={`https://leetcode.com/${profile.leetcode}`} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline text-sm">LeetCode Profile</a>
-        )}
-        {profile.gfg && (
-          // Assuming GFG profile URL structure
-          <a href={`https://auth.geeksforgeeks.org/user/${profile.gfg}`} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline text-sm">GFG Profile</a>
-        )}
-      </div>
+      {profile.skills && profile.skills.length > 0 && (
+        <SkillsSection skills={profile.skills} />
+      )}</div>
+<div className="w-2/3 flex flex-col gap-4 lg:gap-6">
+      {(profile.leetcodeStats || profile.gfgStats) && (
+        <StatsSection
+          leetCodeStats={profile.leetcodeStats || null}
+          gfgStats={profile.gfgStats || null}
+          leetcode={profile.leetcode || ""}
+          gfg={profile.gfg || ""}
+          handleRefreshLeetcode={handleRefreshLeetcode}
+          handleRefreshGfg={handleRefreshGfg}
+          loading={loading} // Pass initial loading state
+          refreshingLeetcode={refreshingLeetcode} // Pass specific refresh state
+          refreshingGfg={refreshingGfg} // Pass specific refresh state
+        />
+      )}</div> </div>
 
-      {/* LeetCode Stats */}
-      {profile.leetcodeStats && (
-        <div className="w-full border-b border-gray-700 pb-4 mb-4">
-          <h3 className="text-lg font-semibold text-orange-300 mb-2 text-center">LeetCode Stats</h3>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <div className="text-gray-400">Solved:</div> <div className="text-right">{profile.leetcodeStats.solvedCount ?? 'N/A'} / {profile.leetcodeStats.totalProblems ?? 'N/A'}</div>
-            <div className="text-gray-400">Acceptance:</div> <div className="text-right">{profile.leetcodeStats.acceptanceRate ? `${profile.leetcodeStats.acceptanceRate.toFixed(1)}%` : 'N/A'}</div>
-            <div className="text-gray-400">Ranking:</div> <div className="text-right">{profile.leetcodeStats.ranking?.toLocaleString() ?? 'N/A'}</div>
-            <div className="text-gray-400">Contributions:</div> <div className="text-right">{profile.leetcodeStats.contributionPoints ?? 'N/A'}</div>
-            <div className="text-gray-400">Easy:</div> <div className="text-right">{profile.leetcodeStats.easySolved ?? 'N/A'} / {profile.leetcodeStats.totalEasy ?? 'N/A'}</div>
-            <div className="text-gray-400">Medium:</div> <div className="text-right">{profile.leetcodeStats.mediumSolved ?? 'N/A'} / {profile.leetcodeStats.totalMedium ?? 'N/A'}</div>
-            <div className="text-gray-400">Hard:</div> <div className="text-right">{profile.leetcodeStats.hardSolved ?? 'N/A'} / {profile.leetcodeStats.totalHard ?? 'N/A'}</div>
-          </div>
-        </div>
-      )}
+      
 
-      {/* GeeksforGeeks Stats */}
-      {profile.gfgStats && (
-        <div className="w-full">
-          <h3 className="text-lg font-semibold text-green-300 mb-2 text-center">GeeksforGeeks Stats</h3>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <div className="text-gray-400">Coding Score:</div> <div className="text-right">{profile.gfgStats.codingScore ?? 'N/A'}</div>
-            <div className="text-gray-400">Problems Solved:</div> <div className="text-right">{profile.gfgStats.totalProblemsSolved ?? 'N/A'}</div>
-            <div className="text-gray-400">Monthly Streak:</div> <div className="text-right">{profile.gfgStats.monthlyCodingStreak ?? 'N/A'}</div>
-            <div className="text-gray-400">Overall Rank:</div> <div className="text-right">{profile.gfgStats.overallRank?.toLocaleString() ?? 'N/A'}</div>
-            <div className="text-gray-400">Articles:</div> <div className="text-right">{profile.gfgStats.articlesPublished ?? 'N/A'}</div>
-            <div className="text-gray-400">Basic:</div> <div className="text-right">{profile.gfgStats.basicSolved ?? 'N/A'}</div>
-            <div className="text-gray-400">Easy:</div> <div className="text-right">{profile.gfgStats.easySolved ?? 'N/A'}</div>
-            <div className="text-gray-400">Medium:</div> <div className="text-right">{profile.gfgStats.mediumSolved ?? 'N/A'}</div>
-          </div>
-        </div>
+      {profile.experiences && profile.experiences.length > 0 && (
+        <ExperienceSection experiences={profile.experiences} />
       )}
     </div>
   );

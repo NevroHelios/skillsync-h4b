@@ -164,44 +164,43 @@ export default function JobsPage() {
       {filteredJobs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredJobs.map(job => (
-            <Link 
-              href={`/jobs/${job._id}`}
-              key={job._id} 
-              className="bg-gray-800 rounded-lg p-5 hover:bg-gray-750 transition border border-gray-700 hover:border-indigo-500"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h2 className="text-xl font-semibold text-indigo-300">{job.title}</h2>
-                <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded-full">
-                  {job.status}
-                </span>
-              </div>
-              
-              <p className="text-gray-400 mb-3">{job.company} • {job.location}</p>
-              
-              <p className="text-sm text-gray-300 mb-4 line-clamp-3">{job.description}</p>
-              
-              <div className="flex flex-wrap gap-1 mb-4">
-                {job.techStack.slice(0, 3).map(tech => (
-                  <span key={tech} className="bg-gray-700 text-xs text-indigo-300 px-2 py-1 rounded-full">
-                    {tech}
+            <div key={job._id} className="relative group">
+              {/* Glow effect */}
+              <div className="absolute -inset-2 rounded-2xl pointer-events-none z-0 bg-gradient-to-br from-[#ffa28b66] via-transparent to-transparent blur-2xl opacity-70 group-hover:opacity-100 transition" />
+              <Link 
+                href={`/jobs/${job._id}`}
+                className="relative z-10 bg-gray-800 rounded-lg p-5 hover:bg-gray-750 transition border border-gray-700 hover:border-[#ffa28b] shadow-xl overflow-hidden"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <h2 className="text-xl font-semibold text-indigo-300">{job.title}</h2>
+                  <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded-full">
+                    {job.status}
                   </span>
-                ))}
-                {job.techStack.length > 3 && (
-                  <span className="bg-gray-700 text-xs text-gray-400 px-2 py-1 rounded-full">
-                    +{job.techStack.length - 3}
+                </div>
+                <p className="text-gray-400 mb-3">{job.company} • {job.location}</p>
+                <p className="text-sm text-gray-300 mb-4 line-clamp-3">{job.description}</p>
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {job.techStack.slice(0, 3).map(tech => (
+                    <span key={tech} className="bg-gray-700 text-xs text-indigo-300 px-2 py-1 rounded-full">
+                      {tech}
+                    </span>
+                  ))}
+                  {job.techStack.length > 3 && (
+                    <span className="bg-gray-700 text-xs text-gray-400 px-2 py-1 rounded-full">
+                      +{job.techStack.length - 3}
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-400">
+                    {job.employmentType || 'Full-time'}
                   </span>
-                )}
-              </div>
-              
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-400">
-                  {job.employmentType || 'Full-time'}
-                </span>
-                <span className="text-gray-400">
-                  {new Date(job.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </Link>
+                  <span className="text-gray-400">
+                    {new Date(job.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </Link>
+            </div>
           ))}
         </div>
       ) : (

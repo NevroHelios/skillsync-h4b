@@ -188,229 +188,230 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="bg-gray-900 min-h-screen">
-      <div className="container mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Find Your <span className="text-indigo-400">Dream Job</span>
-          </h1>
-          <p className="text-gray-400 max-w-2xl mx-auto">
-            Browse through our curated list of available positions in tech and digital industries
-          </p>
-        </div>
-
-        {/* Main content and sidebar layout */}
-        <div className="flex flex-col-reverse lg:flex-row gap-8">
-          {/* Main content - Job listings */}
-          <div className="w-full lg:w-3/4">
-            {/* Results count */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-white">Available Positions</h2>
-              <p className="text-gray-400">
-                Showing <span className="text-white font-medium">{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
-              </p>
-            </div>
-            
-            {/* Job Listings */}
-            {filteredJobs.length > 0 ? (
-              <div className="space-y-6">
-                {filteredJobs.map(job => (
-                  <Link 
-                    href={`/jobs/${job._id}`}
-                    key={job._id} 
-                    className="block bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-750 transition-all duration-200 border border-gray-700 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 group"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h2 className="text-xl font-semibold text-white group-hover:text-indigo-300 transition-colors">{job.title}</h2>
-                      <span className="bg-green-900/70 text-green-300 text-xs px-3 py-1 rounded-full font-medium">
-                        {job.status}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center text-gray-400 mb-4">
-                      <Briefcase size={16} className="mr-2" />
-                      <span className="mr-3">{job.company}</span>
-                      <MapPin size={16} className="mr-2" />
-                      <span>{job.location}</span>
-                    </div>
-                    
-                    <p className="text-sm text-gray-300 mb-5 line-clamp-3">{job.description}</p>
-                    
-                    <div className="flex flex-wrap gap-1.5 mb-5">
-                      {job.techStack.slice(0, 5).map(tech => (
-                        <span key={tech} className="bg-gray-700/70 text-xs text-indigo-300 px-2.5 py-1 rounded-full">
-                          {tech}
-                        </span>
-                      ))}
-                      {job.techStack.length > 5 && (
-                        <span className="bg-gray-700/70 text-xs text-gray-400 px-2.5 py-1 rounded-full">
-                          +{job.techStack.length - 5}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-between items-center text-sm text-gray-400 border-t border-gray-700/50 pt-3">
-                      <span className="flex items-center">
-                        {job.employmentType || 'Full-time'}
-                      </span>
-                      <span className="flex items-center">
-                        <Calendar size={14} className="mr-1" />
-                        {new Date(job.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-gray-800 p-10 text-center rounded-xl border border-gray-700 shadow-lg">
-                <div className="flex flex-col items-center">
-                  <div className="bg-gray-700/50 p-4 rounded-full mb-4">
-                    <Search size={32} className="text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">No matching jobs found</h3>
-                  <p className="text-gray-400 mb-6">Try adjusting your search filters to find more opportunities</p>
-                  <button
-                    onClick={clearAllFilters}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
-                  >
-                    Clear all filters
-                  </button>
-                </div>
-              </div>
-            )}
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Blurred Video Background */}
+      <video 
+        className="absolute inset-0 w-full h-full object-cover z-0 blur-xl" 
+        autoPlay 
+        loop 
+        muted 
+        playsInline
+        preload="metadata"
+        poster="https://res.cloudinary.com/dlrlet9fg/image/upload/v1742230891/video-poster.jpg"
+      >
+        <source 
+          src="https://res.cloudinary.com/dlrlet9fg/video/upload/v1745090293/3129957-uhd_3840_2160_25fps_2_1_1_1_ohss3y.mp4" 
+          type="video/mp4" 
+        />
+        Your browser does not support the video tag.
+      </video>
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 w-full h-full bg-black/10 z-10"></div>
+      <div className="relative z-20">
+        <div className="container mx-auto px-4 py-12">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-[#ffa28b] mb-4">
+              Find Your <span className="text-white">Dream Job</span>
+            </h1>
+            <p className="text-[#7d8590] max-w-2xl mx-auto">
+              Browse through our curated list of available positions in tech and digital industries
+            </p>
           </div>
-          
-          {/* Sidebar - Search and Filters */}
-          <div className="w-full lg:w-1/4 mb-6 lg:mb-0">
-            {/* Search */}
-            <div className="bg-gray-800 p-5 rounded-xl mb-6 border border-gray-700 shadow-lg">
-              <h3 className="text-lg font-medium text-white mb-4">Search Jobs</h3>
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="Job title, keywords..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-700/70 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
-                />
-              </div>
-            </div>
-            
-            {/* Filters */}
-            <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
-              <div 
-                className="p-5 border-b border-gray-700 flex justify-between items-center cursor-pointer"
-                onClick={() => setFiltersExpanded(!filtersExpanded)}
-              >
-                <div className="flex items-center">
-                  <Filter size={18} className="text-indigo-400 mr-2" />
-                  <h3 className="text-lg font-medium text-white">Filters</h3>
-                </div>
-                <ChevronDown 
-                  size={18} 
-                  className={`transition-transform duration-200 text-gray-400 ${filtersExpanded ? 'rotate-180' : ''}`} 
-                />
+
+          {/* Main content and sidebar layout */}
+          <div className="flex flex-col-reverse lg:flex-row gap-8">
+            {/* Main content - Job listings */}
+            <div className="w-full lg:w-3/4">
+              {/* Results count */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-[#ffa28b]">Available Positions</h2>
+                <p className="text-gray-400">
+                  Showing <span className="text-white font-medium">{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
+                </p>
               </div>
               
-              {filtersExpanded && (
-                <div className="p-5 space-y-6">
-                  {/* Tech Stack Filter */}
-                  <div>
-                    <h4 className="text-sm font-medium text-white mb-3 flex justify-between">
-                      Skills & Technologies
-                      {filters.techStack.length > 0 && (
-                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
-                          {filters.techStack.length}
-                        </span>
-                      )}
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {allTechTags.slice(0, 15).map(tech => (
-                        <button
-                          key={tech}
-                          onClick={() => toggleTechFilter(tech)}
-                          className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
-                            filters.techStack.includes(tech)
-                              ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
-                              : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
-                          }`}
-                        >
-                          {tech}
-                        </button>
-                      ))}
+              {/* Job Listings */}
+              {filteredJobs.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredJobs.map(job => (
+                    <Link key={job._id} href={`/jobs/${job._id}`} className="px-2 group block focus:outline-none">
+                      <div className="flex flex-col bg-gradient-to-br from-[#23272e] via-[#161b22] to-[#23272e] border border-[#30363d] rounded-2xl shadow-xl hover:border-[#ffa28b] focus:ring-2 focus:ring-[#ffa28b] focus:ring-offset-2 transition min-h-[360px] overflow-hidden relative">
+                        <div className="flex-1 flex flex-col p-8 sm:p-10 lg:py-14 lg:pl-14 lg:pr-8">
+                          <h2 className="text-2xl font-bold text-white truncate mb-2 drop-shadow-lg" title={job.title}>{job.title}</h2>
+                          <p className="text-[#ffa28b] mb-1 flex items-center gap-1 text-base font-medium"><Briefcase size={18} /> {job.company}</p>
+                          <p className="text-[#7d8590] mb-3 flex items-center gap-1 text-base"><MapPin size={18} /> {job.location}</p>
+                          <p className="text-base text-[#c9d1d9] mb-4 line-clamp-3 leading-relaxed">{job.description}</p>
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {job.techStack?.slice(0, 4).map((tech) => (
+                              <span key={tech} className="bg-[#23272e] border border-[#ffa28b] text-xs text-[#ffa28b] px-2 py-1 rounded-full font-semibold shadow-sm">{tech}</span>
+                            ))}
+                            {job.techStack?.length > 4 && (
+                              <span className="text-gray-500 text-xs py-1">+{job.techStack.length - 4} more</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-400 border-t border-gray-700 pt-2 flex justify-between mt-auto">
+                            <span>{job.employmentType} {job.experienceLevel ? `• ${job.experienceLevel}` : ''}</span>
+                            <span>Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <span className="mt-6 inline-block text-base text-[#161b22] font-bold py-2 px-5 rounded bg-[#ffa28b] hover:bg-[#ffbfa3] transition w-fit shadow-lg">View Details</span>
+                        </div>
+                        {/* Glow effect */}
+                        <div className="absolute -inset-1 rounded-2xl pointer-events-none bg-gradient-to-br from-[#ffa28b33] via-transparent to-transparent blur-lg opacity-60 group-hover:opacity-90 transition" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-800 p-10 text-center rounded-xl border border-gray-700 shadow-lg">
+                  <div className="flex flex-col items-center">
+                    <div className="bg-gray-700/50 p-4 rounded-full mb-4">
+                      <Search size={32} className="text-gray-400" />
                     </div>
+                    <h3 className="text-xl font-semibold text-white mb-2">No matching jobs found</h3>
+                    <p className="text-gray-400 mb-6">Try adjusting your search filters to find more opportunities</p>
+                    <button
+                      onClick={clearAllFilters}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                    >
+                      Clear all filters
+                    </button>
                   </div>
-                  
-                  {/* Experience Level Filter */}
-                  <div>
-                    <h4 className="text-sm font-medium text-white mb-3 flex justify-between">
-                      Experience Level
-                      {filters.experienceLevel && (
-                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
-                          1
-                        </span>
-                      )}
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {experienceLevels.map(level => (
-                        <button
-                          key={level}
-                          onClick={() => setExperienceLevel(level)}
-                          className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
-                            filters.experienceLevel === level
-                              ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
-                              : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
-                          }`}
-                        >
-                          {level}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Employment Type Filter */}
-                  <div>
-                    <h4 className="text-sm font-medium text-white mb-3 flex justify-between">
-                      Employment Type
-                      {filters.employmentType && (
-                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
-                          1
-                        </span>
-                      )}
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {employmentTypes.map(type => (
-                        <button
-                          key={type}
-                          onClick={() => setEmploymentType(type)}
-                          className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
-                            filters.employmentType === type
-                              ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
-                              : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
-                          }`}
-                        >
-                          {type}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Clear Filters Button */}
-                  {activeFiltersCount > 0 && (
-                    <div className="pt-2 border-t border-gray-700">
-                      <button
-                        onClick={clearAllFilters}
-                        className="w-full py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                      >
-                        <X size={14} />
-                        Clear all filters ({activeFiltersCount})
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
+            </div>
+            
+            {/* Sidebar - Search and Filters */}
+            <div className="w-full lg:w-1/4 mb-6 lg:mb-0">
+              {/* Search */}
+              <div className="bg-gray-800 p-5 rounded-xl mb-6 border border-gray-700 shadow-lg">
+                <h3 className="text-lg font-medium text-[#ffa28b] mb-4">Search Jobs</h3>
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Job title, keywords..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="w-full pl-10 pr-4 py-2 bg-gray-700/70 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+              </div>
+              
+              {/* Filters */}
+              <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+                <div 
+                  className="p-5 border-b border-gray-700 flex justify-between items-center cursor-pointer"
+                  onClick={() => setFiltersExpanded(!filtersExpanded)}
+                >
+                  <div className="flex items-center">
+                    <Filter size={18} className="text-[#ffa28b] mr-2" />
+                    <h3 className="text-lg font-medium text-[#ffa28b]">Filters</h3>
+                  </div>
+                  <ChevronDown 
+                    size={18} 
+                    className={`transition-transform duration-200 text-gray-400 ${filtersExpanded ? 'rotate-180' : ''}`} 
+                  />
+                </div>
+                
+                {filtersExpanded && (
+                  <div className="p-5 space-y-6">
+                    {/* Tech Stack Filter */}
+                    <div>
+                      <h4 className="text-sm font-medium text-[#ffa28b] mb-3 flex justify-between">
+                        Skills & Technologies
+                        {filters.techStack.length > 0 && (
+                          <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
+                            {filters.techStack.length}
+                          </span>
+                        )}
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {allTechTags.slice(0, 15).map(tech => (
+                          <button
+                            key={tech}
+                            onClick={() => toggleTechFilter(tech)}
+                            className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
+                              filters.techStack.includes(tech)
+                                ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
+                                : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
+                            }`}
+                          >
+                            {tech}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Experience Level Filter */}
+                    <div>
+                      <h4 className="text-sm font-medium text-[#ffa28b] mb-3 flex justify-between">
+                        Experience Level
+                        {filters.experienceLevel && (
+                          <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
+                            1
+                          </span>
+                        )}
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {experienceLevels.map(level => (
+                          <button
+                            key={level}
+                            onClick={() => setExperienceLevel(level)}
+                            className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
+                              filters.experienceLevel === level
+                                ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
+                                : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
+                            }`}
+                          >
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Employment Type Filter */}
+                    <div>
+                      <h4 className="text-sm font-medium text-[#ffa28b] mb-3 flex justify-between">
+                        Employment Type
+                        {filters.employmentType && (
+                          <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
+                            1
+                          </span>
+                        )}
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {employmentTypes.map(type => (
+                          <button
+                            key={type}
+                            onClick={() => setEmploymentType(type)}
+                            className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
+                              filters.employmentType === type
+                                ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
+                                : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Clear Filters Button */}
+                    {activeFiltersCount > 0 && (
+                      <div className="pt-2 border-t border-gray-700">
+                        <button
+                          onClick={clearAllFilters}
+                          className="w-full py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                          <X size={14} />
+                          Clear all filters ({activeFiltersCount})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -161,20 +161,59 @@ export default function JobDetailPage() {
 
   if (loading || hasApplied === null) {
     return (
-      <div className="container mx-auto p-6 text-center min-h-screen flex items-center justify-center">
-        <FiLoader className="animate-spin text-4xl text-indigo-400" />
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Blurred Video Background */}
+        <video 
+          className="absolute inset-0 w-full h-full object-cover z-0 blur-2xl" 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          preload="metadata"
+          poster="https://res.cloudinary.com/dlrlet9fg/image/upload/v1742230891/video-poster.jpg"
+        >
+          <source 
+            src="https://res.cloudinary.com/dlrlet9fg/video/upload/v1745090293/3129957-uhd_3840_2160_25fps_2_1_1_1_ohss3y.mp4" 
+            type="video/mp4" 
+          />
+          Your browser does not support the video tag.
+        </video>
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 w-full h-full bg-black/10 z-10"></div>
+        <div className="relative z-20 w-full flex items-center justify-center">
+          <FiLoader className="animate-spin text-4xl text-[#ffa28b]" />
+        </div>
       </div>
     );
   }
 
   if (!job) {
-    // Error/not found handled by redirect in useEffect, but keep a fallback
     return (
-      <div className="container mx-auto p-6 text-center">
-        <p className="text-xl text-red-500">Job not found or unavailable.</p>
-        <Link href="/jobs/dashboard" className="text-indigo-400 hover:underline mt-4 inline-block">
-          Back to Job Dashboard
-        </Link>
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Blurred Video Background */}
+        <video 
+          className="absolute inset-0 w-full h-full object-cover z-0 blur-2xl" 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          preload="metadata"
+          poster="https://res.cloudinary.com/dlrlet9fg/image/upload/v1742230891/video-poster.jpg"
+        >
+          <source 
+            src="https://res.cloudinary.com/dlrlet9fg/video/upload/v1745090293/3129957-uhd_3840_2160_25fps_2_1_1_1_ohss3y.mp4" 
+            type="video/mp4" 
+          />
+          Your browser does not support the video tag.
+        </video>
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 w-full h-full bg-black/10 z-10"></div>
+        <div className="relative z-20 w-full flex items-center justify-center">
+          <div className="bg-[#23272e] border border-[#30363d] rounded-2xl shadow-xl p-8 max-w-xl w-full text-center">
+            <p className="text-xl text-red-500">Job not found or unavailable.</p>
+            <Link href="/jobs/dashboard" className="text-[#ffa28b] hover:underline mt-4 inline-block font-semibold">Back to Job Dashboard</Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -182,95 +221,89 @@ export default function JobDetailPage() {
   const canApply = authStatus === 'authenticated' && (session?.user as any)?.role !== 'hr';
 
   return (
-    <div className="container mx-auto p-4 sm:p-8 max-w-4xl">
-      <div className="bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
-        {/* Header */}
-        <div className="mb-6 pb-4 border-b border-gray-700">
-          <h1 className="text-3xl font-bold text-indigo-300 mb-2">{job.title}</h1>
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-gray-400 text-sm">
-            <span className="flex items-center gap-1"><FiBriefcase /> {job.company}</span>
-            <span className="flex items-center gap-1"><FiMapPin /> {job.location}</span>
-            <span className="flex items-center gap-1"><FiClock /> Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
-          </div>
-        </div>
-
-        {/* Job Details Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="md:col-span-2">
-            <h2 className="text-xl font-semibold text-indigo-400 mb-3">Job Description</h2>
-            <p className="text-gray-300 whitespace-pre-wrap">{job.description}</p>
-          </div>
-          <div className="md:col-span-1 space-y-4">
-            <div>
-              <h3 className="text-lg font-medium text-gray-300 mb-1">Employment Type</h3>
-              <p className="text-indigo-300">{job.employmentType || 'Not specified'}</p>
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Blurred Video Background */}
+      <video 
+        className="absolute inset-0 w-full h-full object-cover z-0 blur-2xl" 
+        autoPlay 
+        loop 
+        muted 
+        playsInline
+        preload="metadata"
+        poster="https://res.cloudinary.com/dlrlet9fg/image/upload/v1742230891/video-poster.jpg"
+      >
+        <source 
+          src="https://res.cloudinary.com/dlrlet9fg/video/upload/v1745090293/3129957-uhd_3840_2160_25fps_2_1_1_1_ohss3y.mp4" 
+          type="video/mp4" 
+        />
+        Your browser does not support the video tag.
+      </video>
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 w-full h-full bg-black/10 z-10"></div>
+      <div className="relative z-20 w-full flex items-center justify-center py-12 px-2">
+        <div className="flex flex-col bg-gradient-to-br from-[#23272e] via-[#161b22] to-[#23272e] border border-[#30363d] rounded-2xl shadow-xl min-w-[340px] max-w-2xl w-full p-8 md:p-12 relative overflow-hidden group">
+          {/* Glow effect */}
+          <div className="absolute -inset-1 rounded-2xl pointer-events-none bg-gradient-to-br from-[#ffa28b33] via-transparent to-transparent blur-lg opacity-60 group-hover:opacity-90 transition z-0" />
+          <div className="relative z-10 flex flex-col gap-4">
+            <h1 className="text-3xl font-bold text-[#ffa28b] mb-2">{job.title}</h1>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-[#ffa28b] text-base font-medium mb-2">
+              <span className="flex items-center gap-1"><FiBriefcase /> {job.company}</span>
+              <span className="flex items-center gap-1"><FiMapPin /> {job.location}</span>
+              <span className="flex items-center gap-1"><FiClock /> Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
             </div>
-            <div>
-              <h3 className="text-lg font-medium text-gray-300 mb-1">Experience Level</h3>
-              <p className="text-indigo-300">{job.experienceLevel || 'Not specified'}</p>
+            <p className="text-base text-[#c9d1d9] mb-4 line-clamp-4 leading-relaxed">{job.description}</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {job.techStack.map(tech => (
+                <span key={tech} className="bg-[#23272e] border border-[#ffa28b] text-xs text-[#ffa28b] px-2 py-1 rounded-full font-semibold shadow-sm">{tech}</span>
+              ))}
+              {job.techStack.length === 0 && <span className="text-gray-400 text-xs">No specific skills listed.</span>}
             </div>
-            {(job.salaryMin || job.salaryMax) && (
-              <div>
-                <h3 className="text-lg font-medium text-gray-300 mb-1 flex items-center gap-1"><FiDollarSign /> Salary Range</h3>
-                <p className="text-indigo-300">
+            <div className="flex flex-wrap gap-4 text-xs text-gray-400 border-t border-gray-700 pt-2 mb-2">
+              <span>{job.employmentType || 'Not specified'}{job.experienceLevel ? ` • ${job.experienceLevel}` : ''}</span>
+              {(job.salaryMin || job.salaryMax) && (
+                <span><FiDollarSign className="inline mr-1" />
                   {job.salaryMin ? `$${job.salaryMin.toLocaleString()}` : ''}
                   {job.salaryMin && job.salaryMax ? ' - ' : ''}
                   {job.salaryMax ? `$${job.salaryMax.toLocaleString()}` : ''}
                   {!job.salaryMin && !job.salaryMax ? 'Not specified' : ''}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tech Stack */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-indigo-400 mb-3 flex items-center gap-1"><FiTag /> Required Skills</h2>
-          <div className="flex flex-wrap gap-2">
-            {job.techStack.map(tech => (
-              <span key={tech} className="bg-gray-700 text-indigo-300 text-sm px-3 py-1 rounded-full">
-                {tech}
-              </span>
-            ))}
-            {job.techStack.length === 0 && <p className="text-gray-400 text-sm">No specific skills listed.</p>}
-          </div>
-        </div>
-
-        {/* Apply Button Area */}
-        <div className="text-center mt-8 pt-6 border-t border-gray-700">
-          {hasApplied === true ? (
-            <div className="flex items-center justify-center gap-2 text-green-400">
-              <FiCheckCircle /> Applied Successfully!
+                </span>
+              )}
             </div>
-          ) : (
-            <button
-              onClick={handleApplyClick}
-              disabled={!canApply || applying || hasApplied === true}
-              className={`px-6 py-3 rounded-md font-semibold transition duration-200 flex items-center justify-center gap-2 mx-auto ${ 
-                !canApply
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                  : hasApplied === true 
-                  ? 'bg-green-700 text-green-200 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500'
-              }`}
-            >
-              {applying ? <FiLoader className="animate-spin" /> : <FiSend />}
-              {applying ? 'Submitting...' : hasApplied === true ? 'Applied' : 'Apply Now'}
-            </button>
-          )}
-          {!canApply && authStatus !== 'authenticated' && (
-            <p className="text-sm text-gray-400 mt-2">Please <Link href="/auth/signin" className="text-indigo-400 hover:underline">sign in</Link> as a developer to apply.</p>
-          )}
-           {!canApply && authStatus === 'authenticated' && (session?.user as any)?.role === 'hr' && (
-            <p className="text-sm text-gray-400 mt-2">HR accounts cannot apply for jobs.</p>
-          )}
+            <div className="text-center mt-4">
+              {hasApplied === true ? (
+                <div className="flex items-center justify-center gap-2 text-green-400">
+                  <FiCheckCircle /> Applied Successfully!
+                </div>
+              ) : (
+                <button
+                  onClick={handleApplyClick}
+                  disabled={!canApply || applying || hasApplied === true}
+                  className={`px-6 py-3 rounded-md font-semibold transition duration-200 flex items-center justify-center gap-2 mx-auto ${ 
+                    !canApply
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                      : hasApplied === true 
+                      ? 'bg-green-700 text-green-200 cursor-not-allowed'
+                      : 'bg-[#ffa28b] text-[#161b22] hover:bg-[#ffbfa3] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#23272e] focus:ring-[#ffa28b] shadow-lg'
+                  }`}
+                >
+                  {applying ? <FiLoader className="animate-spin" /> : <FiSend />}
+                  {applying ? 'Submitting...' : hasApplied === true ? 'Applied' : 'Apply Now'}
+                </button>
+              )}
+              {!canApply && authStatus !== 'authenticated' && (
+                <p className="text-sm text-gray-400 mt-2">Please <Link href="/auth/signin" className="text-[#ffa28b] hover:underline">sign in</Link> as a developer to apply.</p>
+              )}
+              {!canApply && authStatus === 'authenticated' && (session?.user as any)?.role === 'hr' && (
+                <p className="text-sm text-gray-400 mt-2">HR accounts cannot apply for jobs.</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
       {/* Application Modal */}
       {showApplyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg relative">
+          <div className="bg-[#23272e] rounded-2xl shadow-xl p-6 w-full max-w-lg relative border border-[#30363d]">
             <button
               onClick={() => setShowApplyModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-white"
@@ -278,7 +311,7 @@ export default function JobDetailPage() {
             >
               <FiXCircle size={24} />
             </button>
-            <h2 className="text-2xl font-semibold text-indigo-300 mb-4">Apply for: {job.title}</h2>
+            <h2 className="text-2xl font-semibold text-[#ffa28b] mb-4">Apply for: {job.title}</h2>
             <form onSubmit={(e) => { e.preventDefault(); submitApplication(); }}>
               <div className="mb-4">
                 <label htmlFor="coverLetter" className="block text-sm font-medium text-gray-300 mb-1">Cover Letter</label>
@@ -288,12 +321,11 @@ export default function JobDetailPage() {
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
                   placeholder="Tell the employer why you are a good fit for this role..."
-                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-white resize-none"
+                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-[#ffa28b] focus:border-[#ffa28b] text-white resize-none"
                   required
                   disabled={applying}
                 />
               </div>
-              {/* Add Resume Upload later if needed */}
               <div className="flex justify-end gap-4 mt-6">
                 <button
                   type="button"
@@ -306,7 +338,7 @@ export default function JobDetailPage() {
                 <button
                   type="submit"
                   disabled={applying || !coverLetter.trim()}
-                  className="px-4 py-2 rounded-md font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-md font-semibold text-[#161b22] bg-[#ffa28b] hover:bg-[#ffbfa3] transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 >
                   {applying ? <FiLoader className="animate-spin" /> : <FiSend />}
                   {applying ? 'Submitting...' : 'Submit Application'}
