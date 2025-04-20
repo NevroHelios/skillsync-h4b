@@ -44,7 +44,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-gray-100`}
       >
         <video 
-          className="absolute inset-0 w-screen object-cover z-0 filter blur-xs" // Changed absolute to fixed for full-screen background
+          className="absolute inset-0 w-screen object-cover -z-1 filter blur-xs" // Changed absolute to fixed for full-screen background
           autoPlay 
           loop 
           muted 
@@ -62,8 +62,8 @@ export default function RootLayout({
           <AuthProvider>
             <Navbar />
             {/* Adjusted margin-top to account for fixed navbar height */}
-            
-            {children}
+            <div className="z-10">
+            {children}</div>
             <ToastContainer
               position="top-center"
               autoClose={2500}
