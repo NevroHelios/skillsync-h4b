@@ -1,12 +1,11 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
-import { FiSearch, FiMapPin, FiBriefcase, FiFilter, FiX } from 'react-icons/fi'; // Example icons
+import { Search, Briefcase, MapPin, Calendar, Filter, X, ChevronDown } from 'lucide-react';
 
-// Define the Job interface based on your Job model
 interface Job {
   _id: string;
   title: string;
@@ -18,16 +17,13 @@ interface Job {
   salaryMax?: number;
   employmentType?: string;
   experienceLevel?: string;
-  status: 'Open' | 'Closed' | 'Draft';
+  status: string;
   createdAt: string;
+  updatedAt: string;
 }
 
-// Define available filters (adjust based on your Job model enums)
-const EXPERIENCE_LEVELS = ["Entry-level", "Mid-level", "Senior-level", "Lead", "Manager"];
-const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contract", "Temporary", "Internship"];
-
-export default function JobsDashboardPage() {
-  const { data: session, status: authStatus } = useSession();
+export default function JobsPage() {
+  const { data: session, status } = useSession();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -36,256 +32,389 @@ export default function JobsDashboardPage() {
     employmentType: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [allTechTags, setAllTechTags] = useState<string[]>([]);
-
-  // Fetch all available jobs marked as 'Open'
+  const [filtersExpanded, setFiltersExpanded] = useState(true);
+  
+  // Fetch all available jobs
   useEffect(() => {
     const fetchJobs = async () => {
-      setLoading(true);
       try {
-        const response = await fetch('/api/jobs/public'); // Endpoint for public, open jobs
+        const response = await fetch('/api/jobs/public');
+        
         if (!response.ok) {
           throw new Error(`Failed to fetch jobs: ${response.status}`);
         }
-        const data: Job[] = await response.json();
+        
+        const data = await response.json();
         setJobs(data);
-        // Extract unique tech tags for filtering
-        const uniqueTags = Array.from(new Set(data.flatMap(job => job.techStack))).sort();
-        setAllTechTags(uniqueTags);
       } catch (error) {
         console.error('Error fetching jobs:', error);
-        toast.error('Failed to load jobs. Please try again later.');
+        toast.error('Failed to load jobs');
       } finally {
         setLoading(false);
       }
     };
+    
     fetchJobs();
   }, []);
-
+  
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
+  
+  // Filter jobs based on search term and filters
+  const filteredJobs = jobs.filter(job => {
+    // Only show Open jobs
+    if (job.status !== 'Open') return false;
+    
+    // Apply search term filter
+    if (searchTerm && !job.title.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !job.company.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !job.description.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    
+    // Apply tech stack filter if any selected
+    if (filters.techStack.length > 0 && 
+        !job.techStack.some(tech => filters.techStack.includes(tech))) {
+      return false;
+    }
+    
+    // Apply experience level filter if selected
+    if (filters.experienceLevel && job.experienceLevel !== filters.experienceLevel) {
+      return false;
+    }
+    
+    // Apply employment type filter if selected
+    if (filters.employmentType && job.employmentType !== filters.employmentType) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // Extract all unique tech stack tags across all jobs for filtering
+  const allTechTags = Array.from(new Set(
+    jobs.flatMap(job => job.techStack)
+  )).sort();
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-  };
-
+  // Experience levels
+  const experienceLevels = ['Entry', 'Mid-Level', 'Senior', 'Lead'];
+  
+  // Employment types
+  const employmentTypes = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'];
+  
   const toggleTechFilter = (tech: string) => {
     setFilters(prev => ({
       ...prev,
-      techStack: prev.techStack.includes(tech)
+      techStack: prev.techStack.includes(tech) 
         ? prev.techStack.filter(t => t !== tech)
         : [...prev.techStack, tech]
     }));
   };
 
-  const clearFilters = () => {
+  const setExperienceLevel = (level: string) => {
+    setFilters(prev => ({
+      ...prev,
+      experienceLevel: prev.experienceLevel === level ? '' : level
+    }));
+  };
+
+  const setEmploymentType = (type: string) => {
+    setFilters(prev => ({
+      ...prev,
+      employmentType: prev.employmentType === type ? '' : type
+    }));
+  };
+
+  const clearAllFilters = () => {
     setSearchTerm('');
     setFilters({ techStack: [], experienceLevel: '', employmentType: '' });
   };
 
-  // Filter jobs based on search term and filters
-  const filteredJobs = jobs.filter(job => {
-    // Should already be 'Open', but double-check
-    if (job.status !== 'Open') return false;
+  const activeFiltersCount = 
+    filters.techStack.length + 
+    (filters.experienceLevel ? 1 : 0) + 
+    (filters.employmentType ? 1 : 0) +
+    (searchTerm ? 1 : 0);
 
-    // Apply search term filter (title, company, description)
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    if (searchTerm &&
-        !job.title.toLowerCase().includes(lowerSearchTerm) &&
-        !job.company.toLowerCase().includes(lowerSearchTerm) &&
-        !job.description.toLowerCase().includes(lowerSearchTerm)) {
-      return false;
-    }
-
-    // Apply tech stack filter
-    if (filters.techStack.length > 0 &&
-        !job.techStack.some(tech => filters.techStack.includes(tech))) {
-      return false;
-    }
-
-    // Apply experience level filter
-    if (filters.experienceLevel && job.experienceLevel !== filters.experienceLevel) {
-      return false;
-    }
-
-    // Apply employment type filter
-    if (filters.employmentType && job.employmentType !== filters.employmentType) {
-      return false;
-    }
-
-    return true;
-  });
-
-  // Loading State UI
   if (loading) {
     return (
-      <div className="container mx-auto p-6 text-center">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-8 w-64 bg-gray-700 rounded mb-6"></div>
-          {/* Placeholder for filters */}
-          <div className="w-full max-w-4xl bg-gray-800 p-4 rounded-lg mb-8 flex flex-col md:flex-row gap-4">
-            <div className="h-10 bg-gray-700 rounded flex-grow"></div>
-            <div className="h-10 bg-gray-700 rounded w-32"></div>
-            <div className="h-10 bg-gray-700 rounded w-32"></div>
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main content column - loading state */}
+          <div className="w-full lg:w-3/4">
+            <div className="animate-pulse">
+              <div className="h-10 w-64 bg-gray-700 rounded-lg mb-8"></div>
+              <div className="space-y-6">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="bg-gray-800 p-6 rounded-xl h-40 shadow-lg">
+                    <div className="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
+                    <div className="h-4 bg-gray-700 rounded w-1/2 mb-6"></div>
+                    <div className="h-4 bg-gray-700 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-5/6 mb-6"></div>
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-gray-700 rounded-full w-16"></div>
+                      <div className="h-6 bg-gray-700 rounded-full w-16"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          {/* Placeholder for job cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-gray-800 p-5 rounded-lg h-48"></div>
-            ))}
+          
+          {/* Sidebar - loading state */}
+          <div className="w-full lg:w-1/4">
+            <div className="animate-pulse">
+              <div className="bg-gray-800 p-6 rounded-xl mb-6">
+                <div className="h-12 bg-gray-700 rounded-lg mb-6"></div>
+                <div className="h-8 bg-gray-700 rounded mb-4"></div>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="h-8 bg-gray-700 rounded-full w-16"></div>
+                  ))}
+                </div>
+                <div className="h-8 bg-gray-700 rounded mb-4"></div>
+                <div className="flex flex-wrap gap-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-8 bg-gray-700 rounded-full w-16"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Main Dashboard UI
   return (
-    <div className="container mx-auto p-4 sm:p-6">
-      <h1 className="text-3xl font-bold text-center text-indigo-400 mb-8">
-        Job Dashboard
-      </h1>
-
-      {/* Search and Filters Bar */}
-      <div className="bg-gray-800 p-4 rounded-lg mb-8 shadow-md">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          {/* Search Input */}
-          <div className="md:col-span-2">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-1">Search Jobs</label>
-            <div className="relative">
-              <input
-                type="text"
-                id="search"
-                placeholder="Title, company, keyword..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="w-full p-2 pl-8 bg-gray-700 border border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-white"
-              />
-              <FiSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-
-          {/* Experience Level Filter */}
-          <div>
-            <label htmlFor="experienceLevel" className="block text-sm font-medium text-gray-300 mb-1">Experience</label>
-            <select
-              id="experienceLevel"
-              name="experienceLevel"
-              value={filters.experienceLevel}
-              onChange={handleFilterChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-white"
-            >
-              <option value="">All Levels</option>
-              {EXPERIENCE_LEVELS.map(level => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Employment Type Filter */}
-          <div>
-            <label htmlFor="employmentType" className="block text-sm font-medium text-gray-300 mb-1">Type</label>
-            <select
-              id="employmentType"
-              name="employmentType"
-              value={filters.employmentType}
-              onChange={handleFilterChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-white"
-            >
-              <option value="">All Types</option>
-              {EMPLOYMENT_TYPES.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
+    <div className="bg-gray-900 min-h-screen">
+      <div className="container mx-auto px-4 py-12">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Find Your <span className="text-indigo-400">Dream Job</span>
+          </h1>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            Browse through our curated list of available positions in tech and digital industries
+          </p>
         </div>
 
-        {/* Tech Stack Filters */}
-        <div className="mt-4 pt-4 border-t border-gray-700">
-           <label className="block text-sm font-medium text-gray-300 mb-2">Filter by Tech Stack</label>
-           <div className="flex flex-wrap gap-2">
-             {allTechTags.map(tech => (
-               <button
-                 key={tech}
-                 onClick={() => toggleTechFilter(tech)}
-                 className={`px-3 py-1 rounded-full text-sm border ${
-                   filters.techStack.includes(tech)
-                     ? 'bg-indigo-600 text-white border-indigo-500'
-                     : 'bg-gray-600 text-gray-200 border-gray-500 hover:bg-gray-500'
-                 }`}
-               >
-                 {tech}
-               </button>
-             ))}
-           </div>
-        </div>
-
-         {/* Clear Filters Button */}
-         {(searchTerm || filters.techStack.length > 0 || filters.experienceLevel || filters.employmentType) && (
-            <div className="mt-4 text-right">
-                <button
-                    onClick={clearFilters}
-                    className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 ml-auto"
-                >
-                    <FiX /> Clear All Filters
-                </button>
+        {/* Main content and sidebar layout */}
+        <div className="flex flex-col-reverse lg:flex-row gap-8">
+          {/* Main content - Job listings */}
+          <div className="w-full lg:w-3/4">
+            {/* Results count */}
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-white">Available Positions</h2>
+              <p className="text-gray-400">
+                Showing <span className="text-white font-medium">{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
+              </p>
             </div>
-         )}
-      </div>
-
-      {/* Job Listings */}
-      {filteredJobs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredJobs.map(job => (
-            <Link
-              href={`/jobs/${job._id}`} // Link to the specific job details page
-              key={job._id}
-              className="block bg-gray-800 rounded-lg p-5 hover:bg-gray-750 transition border border-gray-700 hover:border-indigo-500 shadow-lg transform hover:-translate-y-1"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h2 className="text-xl font-semibold text-indigo-300 truncate" title={job.title}>{job.title}</h2>
-                {/* Optional: Add a badge or indicator */}
-              </div>
-
-              <p className="text-gray-400 mb-1 flex items-center gap-1 text-sm"><FiBriefcase /> {job.company}</p>
-              <p className="text-gray-400 mb-3 flex items-center gap-1 text-sm"><FiMapPin /> {job.location}</p>
-
-              <p className="text-sm text-gray-300 mb-4 line-clamp-3">{job.description}</p>
-
-              {/* Tech Stack Tags */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {job.techStack.slice(0, 4).map(tech => ( // Show limited tags
-                  <span key={tech} className="bg-gray-700 text-indigo-300 text-xs px-2 py-1 rounded">
-                    {tech}
-                  </span>
+            
+            {/* Job Listings */}
+            {filteredJobs.length > 0 ? (
+              <div className="space-y-6">
+                {filteredJobs.map(job => (
+                  <Link 
+                    href={`/jobs/${job._id}`}
+                    key={job._id} 
+                    className="block bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-750 transition-all duration-200 border border-gray-700 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 group"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h2 className="text-xl font-semibold text-white group-hover:text-indigo-300 transition-colors">{job.title}</h2>
+                      <span className="bg-green-900/70 text-green-300 text-xs px-3 py-1 rounded-full font-medium">
+                        {job.status}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center text-gray-400 mb-4">
+                      <Briefcase size={16} className="mr-2" />
+                      <span className="mr-3">{job.company}</span>
+                      <MapPin size={16} className="mr-2" />
+                      <span>{job.location}</span>
+                    </div>
+                    
+                    <p className="text-sm text-gray-300 mb-5 line-clamp-3">{job.description}</p>
+                    
+                    <div className="flex flex-wrap gap-1.5 mb-5">
+                      {job.techStack.slice(0, 5).map(tech => (
+                        <span key={tech} className="bg-gray-700/70 text-xs text-indigo-300 px-2.5 py-1 rounded-full">
+                          {tech}
+                        </span>
+                      ))}
+                      {job.techStack.length > 5 && (
+                        <span className="bg-gray-700/70 text-xs text-gray-400 px-2.5 py-1 rounded-full">
+                          +{job.techStack.length - 5}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-sm text-gray-400 border-t border-gray-700/50 pt-3">
+                      <span className="flex items-center">
+                        {job.employmentType || 'Full-time'}
+                      </span>
+                      <span className="flex items-center">
+                        <Calendar size={14} className="mr-1" />
+                        {new Date(job.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </Link>
                 ))}
-                {job.techStack.length > 4 && (
-                   <span className="text-gray-500 text-xs py-1">+{job.techStack.length - 4} more</span>
-                )}
               </div>
-
-              {/* Footer Info */}
-              <div className="text-xs text-gray-500 border-t border-gray-700 pt-2 flex justify-between">
-                <span>{job.employmentType} {job.experienceLevel ? `• ${job.experienceLevel}` : ''}</span>
-                <span>Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
+            ) : (
+              <div className="bg-gray-800 p-10 text-center rounded-xl border border-gray-700 shadow-lg">
+                <div className="flex flex-col items-center">
+                  <div className="bg-gray-700/50 p-4 rounded-full mb-4">
+                    <Search size={32} className="text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">No matching jobs found</h3>
+                  <p className="text-gray-400 mb-6">Try adjusting your search filters to find more opportunities</p>
+                  <button
+                    onClick={clearAllFilters}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
               </div>
-            </Link>
-          ))}
+            )}
+          </div>
+          
+          {/* Sidebar - Search and Filters */}
+          <div className="w-full lg:w-1/4 mb-6 lg:mb-0">
+            {/* Search */}
+            <div className="bg-gray-800 p-5 rounded-xl mb-6 border border-gray-700 shadow-lg">
+              <h3 className="text-lg font-medium text-white mb-4">Search Jobs</h3>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Job title, keywords..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-700/70 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
+            </div>
+            
+            {/* Filters */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+              <div 
+                className="p-5 border-b border-gray-700 flex justify-between items-center cursor-pointer"
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+              >
+                <div className="flex items-center">
+                  <Filter size={18} className="text-indigo-400 mr-2" />
+                  <h3 className="text-lg font-medium text-white">Filters</h3>
+                </div>
+                <ChevronDown 
+                  size={18} 
+                  className={`transition-transform duration-200 text-gray-400 ${filtersExpanded ? 'rotate-180' : ''}`} 
+                />
+              </div>
+              
+              {filtersExpanded && (
+                <div className="p-5 space-y-6">
+                  {/* Tech Stack Filter */}
+                  <div>
+                    <h4 className="text-sm font-medium text-white mb-3 flex justify-between">
+                      Skills & Technologies
+                      {filters.techStack.length > 0 && (
+                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
+                          {filters.techStack.length}
+                        </span>
+                      )}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {allTechTags.slice(0, 15).map(tech => (
+                        <button
+                          key={tech}
+                          onClick={() => toggleTechFilter(tech)}
+                          className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
+                            filters.techStack.includes(tech)
+                              ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
+                              : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
+                          }`}
+                        >
+                          {tech}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Experience Level Filter */}
+                  <div>
+                    <h4 className="text-sm font-medium text-white mb-3 flex justify-between">
+                      Experience Level
+                      {filters.experienceLevel && (
+                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
+                          1
+                        </span>
+                      )}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {experienceLevels.map(level => (
+                        <button
+                          key={level}
+                          onClick={() => setExperienceLevel(level)}
+                          className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
+                            filters.experienceLevel === level
+                              ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
+                              : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
+                          }`}
+                        >
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Employment Type Filter */}
+                  <div>
+                    <h4 className="text-sm font-medium text-white mb-3 flex justify-between">
+                      Employment Type
+                      {filters.employmentType && (
+                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
+                          1
+                        </span>
+                      )}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {employmentTypes.map(type => (
+                        <button
+                          key={type}
+                          onClick={() => setEmploymentType(type)}
+                          className={`px-2 py-1 text-xs rounded-full transition-all duration-200 ${
+                            filters.employmentType === type
+                              ? 'bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20'
+                              : 'bg-gray-700/70 text-gray-300 hover:bg-gray-700 hover:text-white'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Clear Filters Button */}
+                  {activeFiltersCount > 0 && (
+                    <div className="pt-2 border-t border-gray-700">
+                      <button
+                        onClick={clearAllFilters}
+                        className="w-full py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <X size={14} />
+                        Clear all filters ({activeFiltersCount})
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      ) : (
-        // No Jobs Found Message
-        <div className="bg-gray-800 p-8 text-center rounded-lg border border-gray-700">
-          <p className="text-gray-400 mb-2">No jobs matching your criteria found.</p>
-          <button
-            onClick={clearFilters}
-            className="text-indigo-400 hover:text-indigo-300"
-          >
-            Clear filters and search again
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

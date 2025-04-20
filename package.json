@@ -18,6 +18,7 @@
     "framer-motion": "^12.7.4",
     "get-starknet": "^3.3.0",
     "groq-sdk": "^0.19.0",
+    "lucide-react": "^0.501.0",
     "mongoose": "^8.13.2",
     "next": "^15.3.0",
     "next-auth": "^4.24.7",
