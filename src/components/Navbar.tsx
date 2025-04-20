@@ -25,7 +25,7 @@ export default function Navbar() {
               alt="H4B Logo"
               className="h-8 w-auto"
             />
-            <span className="text-xl font-bold text-white">SkillSync</span>
+            
           </Link>
         </div>
 

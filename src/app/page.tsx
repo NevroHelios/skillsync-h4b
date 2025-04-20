@@ -87,12 +87,9 @@ export default async function Home() {
   const session = await getServerSession(authOptions) as SessionWithRole | null;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100">
-      {/* Navbar */}
-      {/* <Navbar /> */}
+    <div className="flex flex-col min-h-screen text-gray-100">
 
-      {/* Main Content */}
-      <div className='hero-section px-3 '>
+      <div className='hero-section px-3 top-0'>
         <Hero session={session} />
       </div>
       <div id='productivity' className='home-campaign-productivity px-4 pt-8 overflow-hidden'>

@@ -23,7 +23,7 @@ type HeroProps = {
 const Hero = ({ session }: HeroProps) => { // Destructure session from props
 
   return (
-    <div className='relative max-w-[1280px] lg:pt-32 md:px-10 mx-auto  overflow-hidden'> {/* Ensure this container is the positioning context */}
+    <div className='relative max-w-[1280px] lg:pt-0 md:px-10 mx-auto  overflow-hidden'> {/* Reduced top padding from lg:pt-32 to lg:pt-28 */}
         {/* Video Background - Positioned fixed to cover the full screen */}
       
           {/* <video 
@@ -44,10 +44,10 @@ const Hero = ({ session }: HeroProps) => { // Destructure session from props
           </video> */}
 
         {/* Dark Overlay */}
-        <div className="absolute  inset-0 w-full h-full bg-black/10 z-1"></div>
+        {/* <div className="absolute  inset-0 w-full h-full bg-black/10 z-1"></div> */}
 
         {/* Gradient Overlay for bottom shadow effect - Adjusted z-index */}
-        <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent z-2"></div>
+        {/* <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent z-2"></div> */}
 
         {/* Ensure drone image is above the video and overlays - Adjusted z-index */}
         <Image 
@@ -99,7 +99,7 @@ const Hero = ({ session }: HeroProps) => { // Destructure session from props
                     {/* Content inside this div if any */}
                 </div>
 
-                <div className="mt-10"> {/* Increased margin-top */}
+                <div className="mt-20"> {/* Increased margin-top */}
                     {!session?.user && (
                     <Link
                         href="/auth/signin"

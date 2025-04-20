@@ -77,7 +77,7 @@ export default function AdminPage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Blurred Video Background */}
-      <video 
+      {/* <video 
         className="absolute inset-0 w-full h-full object-cover z-0 blur-2xl" 
         autoPlay 
         loop 
@@ -90,12 +90,12 @@ export default function AdminPage() {
           src="https://res.cloudinary.com/dlrlet9fg/video/upload/v1745090293/3129957-uhd_3840_2160_25fps_2_1_1_1_ohss3y.mp4" 
           type="video/mp4" 
         />
-      </video>
+      </video> */}
       {/* Dark Overlay */}
       <div className="absolute inset-0 w-full h-full bg-black/10 z-10"></div>
       <div className="relative z-20 container mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8 text-center text-[#ffa28b]">Admin Dashboard</h1>
-        <div className="p-6 bg-gray-900 min-h-screen text-gray-100">
+        <div className="p-6  min-h-screen text-gray-100">
           {loading ? (
             <p>Loading users...</p>
           ) : (

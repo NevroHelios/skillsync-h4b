@@ -190,7 +190,7 @@ export default function JobsPage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Blurred Video Background */}
-      <video 
+      {/* <video 
         className="absolute inset-0 w-full h-full object-cover z-0 blur-xl" 
         autoPlay 
         loop 
@@ -204,7 +204,7 @@ export default function JobsPage() {
           type="video/mp4" 
         />
         Your browser does not support the video tag.
-      </video>
+      </video> */}
       {/* Dark Overlay */}
       <div className="absolute inset-0 w-full h-full bg-black/10 z-10"></div>
       <div className="relative z-20">

@@ -38,7 +38,7 @@ export default function DashboardClient({ users }: { users: User[] }) {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Blurred Video Background */}
-      <video 
+      {/* <video 
         className="absolute inset-0 w-full h-full object-cover z-0 blur-2xl" 
         autoPlay 
         loop 
@@ -52,7 +52,7 @@ export default function DashboardClient({ users }: { users: User[] }) {
           type="video/mp4" 
         />
         Your browser does not support the video tag.
-      </video>
+      </video> */}
       {/* Dark Overlay */}
       <div className="absolute inset-0 w-full h-full bg-black/10 z-10"></div>
       <div className="relative z-20 container mx-auto px-4 py-12">
