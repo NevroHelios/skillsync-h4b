@@ -23,11 +23,11 @@ type HeroProps = {
 const Hero = ({ session }: HeroProps) => { // Destructure session from props
 
   return (
-    <div className='relative max-w-[1280px] lg:pt-32 md:px-10 mx-auto pt-16 overflow-hidden'> {/* Ensure this container is the positioning context */}
-        {/* Video Background - Positioned absolutely to cover the container */}
+    <div className='relative max-w-[1280px] lg:pt-32 md:px-10 mx-auto  overflow-hidden'> {/* Ensure this container is the positioning context */}
+        {/* Video Background - Positioned fixed to cover the full screen */}
       
-          <video 
-            className="absolute inset-0 w-full h-full object-cover z-0 filter blur-xs" // Added filter and blur-sm
+          {/* <video 
+            className="absolute inset-0 w-full h-full object-cover z-0 filter blur-xs" // Changed absolute to fixed
             autoPlay 
             loop 
             muted 
@@ -41,17 +41,17 @@ const Hero = ({ session }: HeroProps) => { // Destructure session from props
               type="video/mp4" 
             />
             Your browser does not support the video tag.
-          </video>
+          </video> */}
 
         {/* Dark Overlay */}
-        <div className="absolute inset-0 w-full h-full bg-black/10 z-1"></div>
+        <div className="absolute  inset-0 w-full h-full bg-black/10 z-1"></div>
 
         {/* Gradient Overlay for bottom shadow effect - Adjusted z-index */}
         <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent z-2"></div>
 
         {/* Ensure drone image is above the video and overlays - Adjusted z-index */}
         <Image 
-            className='absolute hero-drone  top-28 w-1/4 h-auto right-0 xl:right-0 z-10' /* Kept z-10, should be above dark overlay (z-1) and gradient (z-2) but below content (z-10) - let's adjust content z-index */
+            className='absolute hero-drone  top-20 w-1/4 h-auto right-0 xl:right-0 z-10' /* Kept z-10, should be above dark overlay (z-1) and gradient (z-2) but below content (z-10) - let's adjust content z-index */
             width={500} 
             height={326} 
             src="https://github.githubassets.com/images/modules/site/home-campaign/hero-drone.webp" 
@@ -90,7 +90,7 @@ const Hero = ({ session }: HeroProps) => { // Destructure session from props
                     alt="H4B Logo"
                     width={440} // Adjusted width as per user prompt
                     height={100}
-                    className="mt-5 mb-6 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] drop-shadow-[0_4px_4px_rgba(0,0,0,0.4)]" // Added glow and dark shadow
+                    className="mt-5 mb-6 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" // Removed second drop-shadow to fix lint error
                  />
                 <p className="relative z-1 text-2xl md:text-3xl lg:text-4xl font-medium leading-tight md:leading-snug lg:leading-tight mb-2 md:mb-5 lg:w-10/12 text-white/50 filter drop-shadow-[0_0_5px_rgba(255,255,255,0.4)] drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]"> {/* Changed text color to cyan-300, kept glow and dark shadow */}
                 The Future of Professional Verification & Recruitment

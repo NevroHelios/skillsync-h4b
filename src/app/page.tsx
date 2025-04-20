@@ -89,7 +89,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100">
       {/* Navbar */}
-      <Navbar />
+      {/* <Navbar /> */}
 
       {/* Main Content */}
       <div className='hero-section px-3 '>
@@ -105,60 +105,7 @@ export default async function Home() {
         <Security />
       </div>
 
-      {/* About Section */}
-      <section id="about" className="bg-gray-900 py-16 px-4 dark:bg-gray-900">
-        <div className="max-w-3xl mx-auto text-center mb-10">
-          <h2 className="text-3xl font-bold text-indigo-400 mb-4">About Us</h2>
-          <p className="text-gray-300 text-lg">
-            H4B is a modern platform for user and product management. Built with Next.js, MongoDB, and cloud image storage, it provides a seamless experience for both users and admins.
-          </p>
-        </div>
-        {/* Profile Preview or Login Button */}
-        <div className="max-w-xl mx-auto">
-          {session?.user ? (
-            <ProfilePreview email={session.user.email!} />
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <div className="text-lg text-gray-300 mb-2">Sign up to create your profile and get started!</div>
-              <Link
-                href="/auth/signup"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded transition text-lg"
-              >
-                Sign Up
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Product Section */}
-      <section id="products" className="bg-gray-800 py-16 px-4 dark:bg-gray-800">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-indigo-400 mb-8 text-center">Our Products</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-900 rounded-lg shadow p-6 flex flex-col items-center">
-              <div className="w-24 h-24 bg-indigo-900 rounded-full mb-4 flex items-center justify-center text-3xl">📦</div>
-              <h3 className="font-bold text-lg mb-2 text-indigo-300">Product One</h3>
-              <p className="text-gray-400 text-center">A great product for your needs.</p>
-            </div>
-            <div className="bg-gray-900 rounded-lg shadow p-6 flex flex-col items-center">
-              <div className="w-24 h-24 bg-indigo-900 rounded-full mb-4 flex items-center justify-center text-3xl">🚀</div>
-              <h3 className="font-bold text-lg mb-2 text-indigo-300">Product Two</h3>
-              <p className="text-gray-400 text-center">Boost your workflow with this tool.</p>
-            </div>
-            <div className="bg-gray-900 rounded-lg shadow p-6 flex flex-col items-center">
-              <div className="w-24 h-24 bg-indigo-900 rounded-full mb-4 flex items-center justify-center text-3xl">🔒</div>
-              <h3 className="font-bold text-lg mb-2 text-indigo-300">Product Three</h3>
-              <p className="text-gray-400 text-center">Secure and reliable for your business.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 py-6 mt-auto text-center text-gray-400 text-sm dark:bg-gray-900">
-        &copy; {new Date().getFullYear()} H4B. All rights reserved.
-      </footer>
+  
     </div>
   );
 }
