@@ -21,33 +21,30 @@ const DeveloperWalletConnect: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-5 border border-gray-700 mb-6">
-      <h3 className="text-lg font-bold text-white mb-3">Connect Your Starknet Wallet</h3>
-      <p className="text-gray-300 mb-4">
-        Connecting your wallet allows companies to directly mint Hire NFTs to your address 
-        when you're selected for a position.
-      </p>
-      
-      <WalletConnectButton saveToProfile={true} />
-      
-      {savedAddress && (
-        <div className="mt-3 flex items-center gap-2 text-sm">
-          {isValidAddress ? (
-            <div className="text-green-400 flex items-center gap-2">
-              <FiCheckCircle />
-              <span>Wallet address saved to your profile</span>
-            </div>
-          ) : (
-            <div className="text-yellow-400 flex items-center gap-2">
-              <FiAlertTriangle />
-              <span>Your wallet address appears invalid. Please try reconnecting.</span>
+    <div className="w-[400px] bg-white/5 backdrop-blur-sm rounded-xl p-4 mt-4">
+      <div className="flex flex-col space-y-3">
+        <h3 className="text-lg font-medium text-gray-100">Wallet Status</h3>
+        
+        <div className="flex flex-col items-center space-y-3">
+          <WalletConnectButton saveToProfile={true} />
+          
+          {savedAddress && (
+            <div className="w-full px-3 py-2 rounded-lg bg-white/5">
+              {isValidAddress ? (
+                <div className="flex items-center space-x-2 text-emerald-400">
+                  <FiCheckCircle className="w-4 h-4" />
+                  <span className="text-sm">Wallet verified & connected</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 text-amber-400">
+                  <FiAlertTriangle className="w-4 h-4" />
+                  <span className="text-sm">Invalid wallet address</span>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
-      <p className="text-sm text-gray-400 mt-3">
-        Your wallet address will be securely stored and visible to HR when they select you for positions.
-      </p>
+      </div>
     </div>
   );
 };

@@ -99,33 +99,26 @@ function WalletConnectButton({ onWalletConnected, saveToProfile = false }: Walle
   };
 
   return (
-    <div className="flex flex-col items-center bg-gray-800 p-4 rounded-lg shadow-md gap-4">
-      {!walletAddress && (
-        <button
-          onClick={handleConnect}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition"
-        >
-          Connect Wallet
-        </button>
-      )}
-      {walletAddress && (
-        <div className="flex flex-col items-center gap-3 w-full">
-          <button
-            onClick={handleDisconnect}
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition"
-          >
-            Disconnect
-          </button>
-          <div className="bg-gray-700 text-gray-200 text-sm p-3 rounded-md w-full break-words">
-            <p>
-              <span className="font-medium">Wallet:</span>{" "}
-              {walletName || "Unknown"}
-            </p>
-            <p>
-              <span className="font-medium">Address:</span> {walletAddress}
-            </p>
-          </div>
+    <div className="inline-block">
+      {!walletAddress ? (
+      <button
+        onClick={handleConnect}
+        className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600"
+      >
+        Connect Wallet
+      </button>
+      ) : (
+      <div className="flex items-center gap-2">
+        <div className="px-3 py-1 text-sm text-gray-200 bg-gray-700 rounded">
+        {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
         </div>
+        <button
+        onClick={handleDisconnect}
+        className="p-2 text-gray-400 hover:text-gray-200"
+        >
+        ⨉
+        </button>
+      </div>
       )}
     </div>
   );

@@ -633,44 +633,52 @@ export default function Profile() {
             refreshingGfg={refreshingGfg}
           />
           <div className="w-full flex flex-col items-center lg:items-start gap-10">
-            <DeveloperWalletConnect />
             <div className="flex flex-row items-center gap-4 w-full">
-            <div className="w-1/3 flex flex-col items-center justify-center" >
-            <ProfileHeader
-              photo={photo}
-              name={name}
-              bio={bio}
-              linkedin={linkedin}
-              github={github}
-              leetcode={leetcode}
-              gfg={gfg}
-              scores={user?.scores}
-            />
-            {isGeneratingScores && (
-              <div className="flex items-center justify-center gap-2 p-3 bg-blue-900/50 border border-blue-700 rounded-lg text-blue-200 text-sm">
-                <FaSpinner className="animate-spin" />
-                <span>Generating domain scores in the background...</span>
+              <div className="w-1/3">
+                <div className="space-y-4">
+                  <ProfileHeader
+                    photo={photo}
+                    name={name}
+                    bio={bio}
+                    linkedin={linkedin}
+                    github={github}
+                    leetcode={leetcode}
+                    gfg={gfg}
+                    scores={user?.scores}
+                  />
+                  <DeveloperWalletConnect />
+                  {isGeneratingScores && (
+                    <div className="flex items-center justify-center gap-2 p-3 bg-blue-900/50 border border-blue-700 rounded-lg text-blue-200 text-sm">
+                      <FaSpinner className="animate-spin" />
+                      <span>Generating domain scores...</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}</div>
-            <div className="w-2/3 flex flex-col gap-4 lg:gap-6">
-            <StatsSection
-              leetCodeStats={leetCodeStats}
-              gfgStats={gfgStats}
-              leetcode={leetcode}
-              gfg={gfg}
-              handleRefreshLeetcode={() => {}}
-              handleRefreshGfg={() => {}}
-              loading={loading}
-              refreshingLeetcode={refreshingLeetcode}
-              refreshingGfg={refreshingGfg}
-            />
-            <GithubReposSection
-              githubRepos={githubRepos}
-              github={github}
-              handleRefreshGithub={() => {}}
-              loading={loading}
-              refreshingGithub={refreshingGithub}
-            /></div></div>
+              
+              <div className="w-2/3">
+                <div className="space-y-6">
+                  <StatsSection
+                    leetCodeStats={leetCodeStats}
+                    gfgStats={gfgStats}
+                    leetcode={leetcode}
+                    gfg={gfg}
+                    handleRefreshLeetcode={() => {}}
+                    handleRefreshGfg={() => {}}
+                    loading={loading}
+                    refreshingLeetcode={refreshingLeetcode}
+                    refreshingGfg={refreshingGfg}
+                  />
+                  <GithubReposSection
+                    githubRepos={githubRepos}
+                    github={github}
+                    handleRefreshGithub={() => {}}
+                    loading={loading}
+                    refreshingGithub={refreshingGithub}
+                  />
+                </div>
+              </div>
+            </div>
             <ProjectsSection
               projects={projects}
               githubRepos={githubRepos}
