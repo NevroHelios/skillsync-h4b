@@ -44,9 +44,9 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-6">
-          <Link href="/#about" className="text-gray-300 hover:text-indigo-400 font-medium transition">About</Link>
+          {/* <Link href="/#about" className="text-gray-300 hover:text-indigo-400 font-medium transition">About</Link>
           <Link href="/#products" className="text-gray-300 hover:text-indigo-400 font-medium transition">Products</Link>
-          <Link href="/jobs" className="text-gray-300 hover:text-indigo-400 font-medium transition">Jobs</Link>
+          <Link href="/jobs" className="text-gray-300 hover:text-indigo-400 font-medium transition">Jobs</Link> */}
           {session?.user ? (
             <>
               <Link href="/profile" className="flex items-center gap-2 text-gray-300 hover:text-indigo-400 font-medium transition">
