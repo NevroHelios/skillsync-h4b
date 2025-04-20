@@ -166,6 +166,7 @@ export default function Profile() {
   const [replyingTo, setReplyingTo] = useState<Record<string, string | null>>({});
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [isGeneratingScores, setIsGeneratingScores] = useState(false);
+  const [hireBadges, setHireBadges] = useState<{ uri: string; tx: string }[]>([]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -205,6 +206,24 @@ export default function Profile() {
           setUser(null);
         })
         .finally(() => setLoading(false));
+    }
+
+    // --- Fetch Hire NFT Badges ---
+    // Only fetch if session and profileEmail match (i.e., viewing own profile)
+    if (session?.user?.email && profileEmail && session.user.email === profileEmail) {
+      fetch(`/api/applications/user?email=${encodeURIComponent(profileEmail)}`)
+        .then(res => res.ok ? res.json() : [])
+        .then((apps: any[]) => {
+          // Filter for accepted applications with hireNftUri and tx hash
+          const badges = (apps || [])
+            .filter(app => app.hireNftUri && app.hireNftTxHash)
+            .map(app => ({
+              uri: app.hireNftUri,
+              tx: app.hireNftTxHash,
+            }));
+          setHireBadges(badges);
+        })
+        .catch(() => setHireBadges([]));
     }
   }, [session, status, router, profileEmail]);
 
@@ -575,6 +594,9 @@ export default function Profile() {
     await updateProjectsOnServer(updated);
   };
 
+  const getExplorerUrl = (txHash: string) =>
+    txHash ? `https://voyager.online/tx/${txHash}` : "#";
+
   if (status === "loading" || loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-950">
@@ -645,6 +667,7 @@ export default function Profile() {
                     leetcode={leetcode}
                     gfg={gfg}
                     scores={user?.scores}
+                    hireBadges={hireBadges}
                   />
                   <DeveloperWalletConnect />
                   {isGeneratingScores && (
