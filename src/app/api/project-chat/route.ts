@@ -29,6 +29,8 @@ interface ChatRequestPayload {
 
 // Function to construct the prompt for the LLM
 function constructChatPrompt(project: ProjectContext, question: string): string {
+    console.log("Constructing prompt with project details:", project, "and question:", question);
+
     let prompt = `You are an expert code reviewer and technical assistant. You are helping an HR user understand a specific project from a developer's GitHub profile.
 
 Project Details:
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     const prompt = constructChatPrompt(body.project, body.question);
+    console.log("Constructed prompt for Groq:", prompt);
 
     const stream = await groq.chat.completions.create({
       messages: [

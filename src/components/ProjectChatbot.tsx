@@ -203,6 +203,7 @@ function ProjectChatbotContent({ projects }: { projects: Project[] }) {
 
   const handleAddProject = () => {
     if (!selectedProject) return;
+    console.log("Selected project object:", selectedProject); // <-- Add this line
     const existingProject = nodes.find(node =>
       node.type === 'project' && node.data.name === selectedProject.name
     );
@@ -216,7 +217,7 @@ function ProjectChatbotContent({ projects }: { projects: Project[] }) {
     const projectNode = {
       id,
       type: 'project',
-      data: { name: selectedProject.name, description: selectedProject.description },
+      data: { ...selectedProject }, // <-- Pass the full project object
       position: getNextNodePosition('project')
     };
     setNodes(nds => [...nds, projectNode]);
