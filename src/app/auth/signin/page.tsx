@@ -40,7 +40,7 @@ export default function SignIn() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-950 to-indigo-950">
+    <main className="min-h-screen flex items-center justify-center ">
       <div className="bg-gray-900/90 shadow-xl rounded-xl p-8 w-full max-w-sm">
         <h2 className="text-2xl font-bold mb-6 text-indigo-400 text-center">Sign In</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

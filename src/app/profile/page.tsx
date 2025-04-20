@@ -592,8 +592,8 @@ export default function Profile() {
   }
 
   return (
-    <main className=" bg-gradient-to-br from-gray-950 via-black to-gray-950 ">
-      <div className="bg-gray-900/80 backdrop-blur-lg shadow-xl rounded-xl  md:p-12 w-full  mx-auto text-gray-300 border border-gray-700/30">
+    <main className=" ">
+      <div className=" shadow-xl rounded-xl  md:p-12 w-full  mx-auto">
         <h2 className="text-3xl font-semibold text-gray-100 mb-12 text-center">
           Developer Profile
         </h2>
