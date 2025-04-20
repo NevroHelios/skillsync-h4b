@@ -29,7 +29,7 @@ export default function PostLoginRedirect() {
           router.replace("/admin");
           break;
         case "hr":
-          router.replace("/hr-dashboard"); // Redirect HR users to their dashboard
+          router.replace("/hr-profile"); // Redirect HR users to their dashboard
           break;
         case "user":
         default:
