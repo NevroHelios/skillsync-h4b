@@ -98,9 +98,9 @@ export default async function Home() {
       <div id='collaboration' className='home-campaign-productivity px-4 pt-8  overflow-hidden'>
         <Collaboration />
       </div>
-      <div id='security' className='home-campaign-productivity px-4 pt-8 pb-16 overflow-hidden'>
+      {/* <div id='security' className='home-campaign-productivity px-4 pt-8 pb-16 overflow-hidden'>
         <Security />
-      </div>
+      </div> */}
 
   
     </div>
